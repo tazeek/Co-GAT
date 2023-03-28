@@ -62,15 +62,21 @@ data_house, piece_vocab = build_datasets(args)
 
 model = TaggingAgent(
     data_house.word_vocab, piece_vocab, data_house.sent_vocab,
-    data_house.act_vocab, data_house.adj_vocab, data_house.adj_full_vocab, data_house.adj_id_vocab, args.embedding_dim,
-    args.hidden_dim, args.num_layer, args.gat_layer, args.gat_dropout_rate, args.dropout_rate,
+    data_house.act_vocab, data_house.adj_vocab, data_house.adj_full_vocab, 
+    data_house.adj_id_vocab, args.embedding_dim,
+    args.hidden_dim, args.num_layer, args.gat_layer, args.gat_dropout_rate, 
+    args.dropout_rate,
     args.linear_decoder, args.pretrained_model)
+
 if torch.cuda.is_available():
     model = model.cuda()
+
+# For mastodon specific metric
 if args.data_dir == "dataset/mastodon":
-    metric = False
+    use_mastodon_metric = False
 else:
-    metric = True
+    use_mastodon_metric = True
+
 if not os.path.exists(args.save_dir):
     os.makedirs(args.save_dir)
 
@@ -79,44 +85,28 @@ test_sent_sent, test_sent_act = 0.0, 0.0
 test_act_sent, test_act_act = 0.0, 0.0
 
 for epoch in range(0, args.num_epoch + 1):
+
     print("Training Epoch: {:4d} ...".format(epoch), file=sys.stderr)
 
+    # Start training
     train_loss, train_time = training(model, data_house.get_iterator("train", args.batch_size, True),
                                       10.0, args.bert_learning_rate, args.pretrained_model)
+    
+    # Training dataset update
     print("[Epoch{:4d}], train loss is {:.4f}, cost {:.4f} s.".format(epoch, train_loss, train_time))
 
+    # Validation dataset
     dev_sent_f1, _, _, dev_act_f1, _, _, dev_time = evaluate(
-        model, data_house.get_iterator("dev", args.batch_size, False), metric)
+        model, data_house.get_iterator("dev", args.batch_size, False), use_mastodon_metric)
+    
+    # Testing dataset
     test_sent_f1, sent_r, sent_p, test_act_f1, act_r, act_p, test_time = evaluate(
-        model, data_house.get_iterator("test", args.batch_size, False), metric)
+        model, data_house.get_iterator("test", args.batch_size, False), use_mastodon_metric)
 
     print("On dev, sentiment f1: {:.4f}, act f1: {:.4f}".format(dev_sent_f1, dev_act_f1))
     print("On test, sentiment f1: {:.4f}, act f1 {:.4f}".format(test_sent_f1, test_act_f1))
     print("Dev and test cost {:.4f} s.\n".format(dev_time + test_time))
 
-    # if get a higher score on dev set, do predict on test set, base on sent or act.
-    if dev_sent_f1 > dev_best_sent or dev_act_f1 > dev_best_act:
 
-        if dev_sent_f1 > dev_best_sent:
-            dev_best_sent = dev_sent_f1
-
-            test_sent_sent = test_sent_f1
-            test_sent_act = test_act_f1
-
-            print("<Epoch {:4d}>, Update (base on sent) test score: sentiment f1: {:.4f} (r: "
-                  "{:.4f}, p: {:.4f}), act f1: {:.4f} (r: {:.4f}, p: {:.4f})"
-                  ";".format(epoch, test_sent_sent, sent_r, sent_p, test_sent_act, act_r, act_p))
-
-        if dev_act_f1 > dev_best_act:
-            dev_best_act = dev_act_f1
-
-            test_act_sent = test_sent_f1
-            test_act_act = test_act_f1
-
-            print("<Epoch {:4d}>, Update (base on act) test score: sentiment f1: {:.4f} (r: "
-                  "{:.4f}, p: {:.4f}), act f1: {:.4f} (r: {:.4f}, p: {:.4f})"
-                  ";".format(epoch, test_act_sent, sent_r, sent_p, test_act_act, act_r, act_p))
-
-        torch.save(model, os.path.join(args.save_dir, "model.pt"))
-
-        print("", end="\n")
+torch.save(model, os.path.join(args.save_dir, "model.pt"))
+print("", end="\n")
