@@ -43,15 +43,15 @@ class GAT(nn.Module):
     def __init__(self, nfeat, nhid, nclass, dropout, alpha, nheads, layer=2):
         """Dense version of GAT."""
         super(GAT, self).__init__()
+
         self.dropout = dropout
+        self.layer = layer
         
         # stack GAT layer here
         # firstlayer and second layer will be initialized.
         # But will not be used if layer<3
         self.firstlayer = GraphAttentionLayer(nfeat, nhid, dropout=dropout, alpha=alpha, concat=False)
         self.secondlayer = GraphAttentionLayer(nfeat, nhid, dropout=dropout, alpha=alpha, concat=False)
-        
-        self.layer = layer
 
         self.attentions = [GraphAttentionLayer(nfeat, nhid, dropout=dropout, alpha=alpha, concat=True) for _ in
                            range(nheads)]
@@ -101,6 +101,7 @@ class GraphAttentionLayer(nn.Module):
 
     def __init__(self, in_features, out_features, dropout, alpha, concat=True):
         super(GraphAttentionLayer, self).__init__()
+        
         self.dropout = dropout
         self.in_features = in_features
         self.out_features = out_features
