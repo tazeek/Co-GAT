@@ -63,22 +63,25 @@ class DataHub(object):
 
         house._data_collection["test"] = house._read_data(
             os.path.join(dir_path, "test.json"), False
-        ) 
+        )
+
         return house
 
     @staticmethod
     def _read_adj(file_path: str):
 
-        lines = load_txt(file_path)
         adjs = []
         adjs_full_connect = []
+
         # Identity matrix
         adjs_I = []
 
         # Init adjacency matrix for each dialog
+        lines = load_txt(file_path)
         for line in lines:
 
             if len(line) == 0:
+
                 continue
 
             length = int(line.split()[0])
@@ -92,6 +95,7 @@ class DataHub(object):
             adj_full = [[1] * length for _ in range(length)]
 
             for edge in edges:
+
                 i, j = edge.split("-")
                 adj[int(i)-1][int(j)-1] = 1
                 adj[int(j)-1][int(i)-1] = 1
@@ -100,6 +104,7 @@ class DataHub(object):
 
             # full connect adj
             adjs_full_connect.append(adj_full)
+
             # Identity matrix
             adjs_I.append(adj_I)
 

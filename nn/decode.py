@@ -22,11 +22,12 @@ class RelationDecoder(nn.Module):
 
         # First with a BiLSTM layer to get the initial representation of SC and DAR
         self._sent_layer_dict.add_module(
-                str(0), BiLSTMLayer(hidden_dim, dropout_rate)
-            )
+            str(0), BiLSTMLayer(hidden_dim, dropout_rate)
+        )
         self._act_layer_dict.add_module(
-                str(0), BiLSTMLayer(hidden_dim, dropout_rate)
-            )
+            str(0), BiLSTMLayer(hidden_dim, dropout_rate)
+        )
+        
         # After each calculation, the specified layer will be passed
         for layer_i in range(1, num_layer):
 
