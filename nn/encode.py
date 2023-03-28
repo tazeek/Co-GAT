@@ -64,9 +64,6 @@ class BiRNNEncoder(nn.Module):
 
     def forward(self, input_w):
 
-        print(input_w)
-        print("\n\n")
-
         embed_w = self._word_embedding(input_w)
         dropout_w = self._drop_layer(embed_w)
 
@@ -80,9 +77,7 @@ class BiRNNEncoder(nn.Module):
             hidden_list.append(pooling_h.unsqueeze(0))
 
         # Concatenate the representations of each sentence in the batch.
-        print(hidden_list)
-        exit()
-        
+
         return torch.cat(hidden_list, dim=0)
 
 

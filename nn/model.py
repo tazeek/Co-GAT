@@ -260,19 +260,17 @@ class TaggingAgent(nn.Module):
             self._wrap_padding(utt_list, adj_list, adj_full_list, adj_id_list, False)
         
         # Perform predictions
+        bi_ret = None 
         if self._pretrained_model != "none":
 
-            bi_ret = self.extract_utterance_features(var_utt, mask)
-            full_encoded = self.extract_from_speaker_layer(bi_ret, var_adj)
-
-            pred_sent, pred_act = self.forward(full_encoded, len_list, var_adj_R)
+            bi_ret = self.extract_utterance_features(var_p, mask)
         
         else:
             
-            bi_ret = self.extract_utterance_features(var_utt, mask)
-            full_encoded = self.extract_from_speaker_layer(bi_ret, var_adj)
+            bi_ret = self.extract_utterance_features(var_utt, None)
 
-            pred_sent, pred_act = self.forward(full_encoded, len_list, var_adj_R)
+        full_encoded = self.extract_from_speaker_layer(bi_ret, var_adj)
+        pred_sent, pred_act = self.forward(full_encoded, len_list, var_adj_R)
 
         # Get the labels
         trim_list = [len(l) for l in len_list]
@@ -337,20 +335,17 @@ class TaggingAgent(nn.Module):
             var_act = var_act.cuda()
 
         # Training starts here
+        bi_ret = None 
         if self._pretrained_model != "none":
 
-            bi_ret = self.extract_utterance_features(var_utt, mask)
-            full_encoded = self.extract_from_speaker_layer(bi_ret, var_adj)
-
-            pred_sent, pred_act = self.forward(full_encoded, len_list, var_adj_R)
-
-            
+            bi_ret = self.extract_utterance_features(var_p, mask)
+        
         else:
+            
+            bi_ret = self.extract_utterance_features(var_utt, None)
 
-            bi_ret = self.extract_utterance_features(var_utt, mask)
-            full_encoded = self.extract_from_speaker_layer(bi_ret, var_adj)
-
-            pred_sent, pred_act = self.forward(full_encoded, len_list, var_adj_R)
+        full_encoded = self.extract_from_speaker_layer(bi_ret, var_adj)
+        pred_sent, pred_act = self.forward(full_encoded, len_list, var_adj_R)
        
         trim_list = [len(l) for l in len_list]
 
