@@ -17,6 +17,7 @@ class GraphRelation(nn.Module):
         self._act_linear = nn.Linear(
             hidden_dim, hidden_dim, bias=False
         )
+
         self._dialog_layer = GAT(hidden_dim, hidden_dim, hidden_dim, dropout_rate, 0.2, 8, n_layer)
 
     # Add for loading best model
@@ -24,8 +25,10 @@ class GraphRelation(nn.Module):
         self._dialog_layer.add_missing_arg(layer)
 
     def forward(self, input_s, input_a, len_list, adj_re):
+        
         graph_input = torch.cat([input_s, input_a], dim=1)
         ret = self._dialog_layer(graph_input, adj_re)
+        
         # chunk into sent and act representation
         sent, act = torch.chunk(ret, 2, dim=1)
         return sent, act
@@ -36,21 +39,26 @@ class GAT(nn.Module):
     multi-GAT layer stack version
     Thanks to https://github.com/Diego999/pyGAT
     """
+    
     def __init__(self, nfeat, nhid, nclass, dropout, alpha, nheads, layer=2):
         """Dense version of GAT."""
         super(GAT, self).__init__()
         self.dropout = dropout
+        
         # stack GAT layer here
         # firstlayer and second layer will be initialized.
         # But will not be used if layer<3
         self.firstlayer = GraphAttentionLayer(nfeat, nhid, dropout=dropout, alpha=alpha, concat=False)
         self.secondlayer = GraphAttentionLayer(nfeat, nhid, dropout=dropout, alpha=alpha, concat=False)
+        
         self.layer = layer
 
         self.attentions = [GraphAttentionLayer(nfeat, nhid, dropout=dropout, alpha=alpha, concat=True) for _ in
                            range(nheads)]
+        
         for i, attention in enumerate(self.attentions):
             self.add_module('attention_{}'.format(i), attention)
+        
         self.out_att = GraphAttentionLayer(nhid * nheads, nclass, dropout=dropout, alpha=alpha, concat=False)
 
     # Add for loading best model
@@ -58,21 +66,28 @@ class GAT(nn.Module):
         self.layer = layer
 
     def forward(self, x, adj):
+
         input_x = x
+        
         x = F.dropout(x, self.dropout, training=self.training)
+        
         # Only can accept up to 4 layers
         # Deep network is difficult to obtain better results
         if self.layer >= 3:
             x = self.firstlayer(x, adj)
             x = F.dropout(x, self.dropout, training=self.training)
+        
         if self.layer == 4:
             x = self.secondlayer(x, adj)
+        
         if self.layer > 4:
             assert False
+        
         x = F.dropout(x, self.dropout, training=self.training)
         x = torch.cat([att(x, adj) for att in self.attentions], dim=2)
         x = F.dropout(x, self.dropout, training=self.training)
         x = F.elu(self.out_att(x, adj))
+        
         # residual connection
         return x + input_x
 
@@ -97,11 +112,13 @@ class GraphAttentionLayer(nn.Module):
         self.leakyrelu = nn.LeakyReLU(self.alpha)
 
     def forward(self, input, adj):
+
         h = self.W(input)
         N = h.size()[1]
 
         a_input = torch.cat([h.repeat(1, 1, N).view(h.shape[0], N * N, -1), h.repeat(1, N, 1)], dim=2)\
             .view(h.shape[0], N, -1, 2 * self.out_features)
+        
         e = self.leakyrelu(self.a(a_input).squeeze(3))
 
         zero_vec = -9e15 * torch.ones_like(e)

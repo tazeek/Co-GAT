@@ -46,11 +46,12 @@ class RelationDecoder(nn.Module):
         self._relate_layer.add_missing_arg(layer)
 
     def forward(self, input_h, len_list, adj_re):
+
         sent_h = self._sent_layer_dict["0"](input_h)
         act_h = self._act_layer_dict["0"](input_h)
+
         # residual connection
         res_s, res_a = sent_h + input_h, act_h + input_h
-    
         sent_r, act_r = self._relate_layer(res_s, res_a, len_list, adj_re)
 
         # stack num layer CAN NOT be change here.
