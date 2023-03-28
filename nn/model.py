@@ -353,7 +353,7 @@ class TaggingAgent(nn.Module):
              i in range(0, len(trim_list))], dim=0
         )
 
-        # Calculate the loss
+        # Calculate the loss after softmax (IMPORTANT)
         sent_loss = self._criterion(
             F.log_softmax(flat_pred_s, dim=-1), var_sent
         )
