@@ -62,9 +62,13 @@ print(json.dumps(args.__dict__, indent=True), end="\n\n\n")
 # fix random seed
 fix_random_state(args.random_state)
 
-# Get the datasets
+# Get the datasets (labeled and unlabeled)
 labeled_data_house, labeled_piece_vocab = build_datasets(args.data_dir, args.pretrained_model)
 
+unlabeled_data_house, unlabeled_piece_vocab = None, None
+
+if args.vat_applied:
+    unlabeled_data_house, unlabeled_piece_vocab = build_datasets(args.semi_sup_dir, args.pretrained_model)
 
 model = TaggingAgent(
     labeled_data_house.word_vocab, labeled_piece_vocab, labeled_data_house.sent_vocab,
