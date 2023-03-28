@@ -44,7 +44,6 @@ class BiGraphEncoder(nn.Module):
         
         bi_ret = self.extract_utterances(input_w, mask)
 
-
         ret = self._dialog_layer_user(bi_ret, adj)
         return ret
 
@@ -66,11 +65,13 @@ class BiRNNEncoder(nn.Module):
         self._drop_layer = nn.Dropout(dropout_rate)
 
     def forward(self, input_w):
+
         embed_w = self._word_embedding(input_w)
         dropout_w = self._drop_layer(embed_w)
 
         hidden_list, batch_size = [], input_w.size(0)
         for index in range(0, batch_size):
+
             batch_w = dropout_w[index]
             encode_h, _ = self._rnn_cell(batch_w)
 
