@@ -31,16 +31,20 @@ def training(model, data_iter, max_grad=10.0, bert_lr=1e-5, pretrained_model="no
     # using pretrain model need to change optimizer (Adam -> AdamW).
     if pretrained_model != "none":
         optimizer = AdamW(model.parameters(), lr=bert_lr, correct_bias=False)
+    
     else:
         optimizer = Adam(model.parameters(), weight_decay=1e-8)
+    
     time_start, total_loss = time.time(), 0.0
 
     for data_batch in tqdm(data_iter, ncols=50):
+
         batch_loss = model.measure(*data_batch)
         total_loss += batch_loss.cpu().item()
 
         optimizer.zero_grad()
         batch_loss.backward()
+
         torch.nn.utils.clip_grad_norm_(
             model.parameters(), max_grad
         )
@@ -50,7 +54,7 @@ def training(model, data_iter, max_grad=10.0, bert_lr=1e-5, pretrained_model="no
     return total_loss, time_con
 
 
-def evaluate(model, data_iter, normal_metric):
+def evaluate(model, data_iter, mastodon_metric):
     model.eval()
 
     gold_sent, pred_sent = [], []
@@ -63,10 +67,11 @@ def evaluate(model, data_iter, normal_metric):
 
         with torch.no_grad():
             p_sent, p_act = model.predict(utt, adj, adj_full, adj_I)
+        
         pred_sent.extend(p_sent)
         pred_act.extend(p_act)
 
-    if not normal_metric:
+    if not mastodon_metric:
         reference = ReferMetric(
             len(model.sent_vocab), len(model.act_vocab),
             model.sent_vocab.index("+"), model.sent_vocab.index("-")

@@ -30,12 +30,19 @@ class BiGraphEncoder(nn.Module):
     def add_missing_arg(self, pretrained_model):
         self._pretrained_model = pretrained_model
 
-    def forward(self, input_w, adj, adj_full, mask=None):
+    def extract_utterances(self, input_w, mask=None):
+        hidden_w = None
+
         if self._pretrained_model != "none":
             hidden_w = self._utt_encoder(input_w, mask)
         else:
             hidden_w = self._utt_encoder(input_w)
-        bi_ret = hidden_w
+
+        return hidden_w
+
+    def forward(self, input_w, adj, adj_full, mask=None):
+        
+        bi_ret = self.extract_utterances(input_w, mask)
 
         ret = self._dialog_layer_user(bi_ret, adj)
         return ret
@@ -58,11 +65,13 @@ class BiRNNEncoder(nn.Module):
         self._drop_layer = nn.Dropout(dropout_rate)
 
     def forward(self, input_w):
+
         embed_w = self._word_embedding(input_w)
         dropout_w = self._drop_layer(embed_w)
 
         hidden_list, batch_size = [], input_w.size(0)
         for index in range(0, batch_size):
+
             batch_w = dropout_w[index]
             encode_h, _ = self._rnn_cell(batch_w)
 
@@ -80,19 +89,29 @@ class GAT(nn.Module):
     def __init__(self, nfeat, nhid, nclass, dropout, alpha, nheads):
         """Dense version of GAT."""
         super(GAT, self).__init__()
+        
         self.dropout = dropout
-        self.attentions = [GraphAttentionLayer(nfeat, nhid, dropout=dropout, alpha=alpha, concat=True) for _ in
-                           range(nheads)]
+        
+        self.attentions = [
+            GraphAttentionLayer(nfeat, nhid, dropout=dropout, alpha=alpha, concat=True) 
+            for _ in range(nheads)
+        ]
+        
         for i, attention in enumerate(self.attentions):
             self.add_module('attention_{}'.format(i), attention)
+        
         self.out_att = GraphAttentionLayer(nhid * nheads, nclass, dropout=dropout, alpha=alpha, concat=False)
 
     def forward(self, x, adj):
+
         input_x = x
+
         x = F.dropout(x, self.dropout, training=self.training)
         x = torch.cat([att(x, adj) for att in self.attentions], dim=2)
+        
         x = F.dropout(x, self.dropout, training=self.training)
         x = F.elu(self.out_att(x, adj))
+
         # residual connection
         return x + input_x
 
@@ -105,6 +124,7 @@ class GraphAttentionLayer(nn.Module):
 
     def __init__(self, in_features, out_features, dropout, alpha, concat=True):
         super(GraphAttentionLayer, self).__init__()
+        
         self.dropout = dropout
         self.in_features = in_features
         self.out_features = out_features
@@ -176,11 +196,15 @@ class UtterancePretrainedModel(nn.Module):
         cls_list = []
 
         for idx in range(0, input_p.size(0)):
+            
             if self._pretrained_model == "electra":
                 output = self._encoder(input_p[idx], attention_mask=mask[idx])[0]
             else:
                 output = self._encoder(input_p[idx], attention_mask=mask[idx])
+
             cls_tensor = output.pooler_output
+
             linear_out = self._linear(cls_tensor.unsqueeze(0))
             cls_list.append(linear_out)
+        
         return torch.cat(cls_list, dim=0)
