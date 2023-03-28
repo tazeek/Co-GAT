@@ -29,9 +29,11 @@ class RelationDecoder(nn.Module):
             )
         # After each calculation, the specified layer will be passed
         for layer_i in range(1, num_layer):
+
             self._sent_layer_dict.add_module(
                 str(layer_i), UniLinearLayer(hidden_dim, dropout_rate)
             )
+            
             self._act_layer_dict.add_module(
                 str(layer_i), UniLSTMLayer(hidden_dim, dropout_rate)
             )
