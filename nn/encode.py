@@ -30,12 +30,20 @@ class BiGraphEncoder(nn.Module):
     def add_missing_arg(self, pretrained_model):
         self._pretrained_model = pretrained_model
 
-    def forward(self, input_w, adj, adj_full, mask=None):
+    def extract_utterances(self, input_w, mask=None):
+        hidden_w = None
+
         if self._pretrained_model != "none":
             hidden_w = self._utt_encoder(input_w, mask)
         else:
             hidden_w = self._utt_encoder(input_w)
-        bi_ret = hidden_w
+
+        return hidden_w
+
+    def forward(self, input_w, adj, adj_full, mask=None):
+        
+        bi_ret = self.extract_utterances(input_w, mask)
+
 
         ret = self._dialog_layer_user(bi_ret, adj)
         return ret
