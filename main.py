@@ -10,34 +10,38 @@ from utils import fix_random_state
 from utils import training, evaluate
 from utils.dict import PieceAlphabet
 
+def get_hyperparams_args():
 
-parser = argparse.ArgumentParser()
-# Pre-train Hyper parameter
-parser.add_argument("--pretrained_model", "-pm", type=str, default="none",
-                    choices=["none", "bert", "roberta", "xlnet", "albert", "electra"],
-                    help="choose pretrained model, default is none.")
-parser.add_argument("--linear_decoder", "-ld", action="store_true", default=False,
-                    help="Using Linear decoder to get category.")
-parser.add_argument("--bert_learning_rate", "-blr", type=float, default=1e-5,
-                    help="The learning rate of all types of pretrain model.")
-# Basic Hyper parameter
-parser.add_argument("--data_dir", "-dd", type=str, default="dataset/mastodon")
-parser.add_argument("--save_dir", "-sd", type=str, default="./save")
-parser.add_argument("--batch_size", "-bs", type=int, default=16)
-parser.add_argument("--num_epoch", "-ne", type=int, default=300)
-parser.add_argument("--random_state", "-rs", type=int, default=0)
 
-# Model Hyper parameter
-parser.add_argument("--num_layer", "-nl", type=int, default=2,
-                    help="This parameter CAN NOT be modified! Please use gat_layer to set the layer num of gat")
-parser.add_argument("--gat_layer", "-gl", type=int, default=2,
-                    help="Control the number of GAT layers. Must be between 2 and 4.")
-parser.add_argument("--embedding_dim", "-ed", type=int, default=128)
-parser.add_argument("--hidden_dim", "-hd", type=int, default=256)
-parser.add_argument("--dropout_rate", "-dr", type=float, default=0.1)
-parser.add_argument("--gat_dropout_rate", "-gdr", type=float, default=0.1)
+    parser = argparse.ArgumentParser()
+    # Pre-train Hyper parameter
+    parser.add_argument("--pretrained_model", "-pm", type=str, default="none",
+                        choices=["none", "bert", "roberta", "xlnet", "albert", "electra"],
+                        help="choose pretrained model, default is none.")
+    parser.add_argument("--linear_decoder", "-ld", action="store_true", default=False,
+                        help="Using Linear decoder to get category.")
+    parser.add_argument("--bert_learning_rate", "-blr", type=float, default=1e-5,
+                        help="The learning rate of all types of pretrain model.")
+    # Basic Hyper parameter
+    parser.add_argument("--data_dir", "-dd", type=str, default="dataset/mastodon")
+    parser.add_argument("--save_dir", "-sd", type=str, default="./save")
+    parser.add_argument("--batch_size", "-bs", type=int, default=16)
+    parser.add_argument("--num_epoch", "-ne", type=int, default=300)
+    parser.add_argument("--random_state", "-rs", type=int, default=0)
 
-args = parser.parse_args()
+    # Model Hyper parameter
+    parser.add_argument("--num_layer", "-nl", type=int, default=2,
+                        help="This parameter CAN NOT be modified! Please use gat_layer to set the layer num of gat")
+    parser.add_argument("--gat_layer", "-gl", type=int, default=2,
+                        help="Control the number of GAT layers. Must be between 2 and 4.")
+    parser.add_argument("--embedding_dim", "-ed", type=int, default=128)
+    parser.add_argument("--hidden_dim", "-hd", type=int, default=256)
+    parser.add_argument("--dropout_rate", "-dr", type=float, default=0.1)
+    parser.add_argument("--gat_dropout_rate", "-gdr", type=float, default=0.1)
+
+    return parser.parse_args()
+
+args = get_hyperparams_args()
 print(json.dumps(args.__dict__, indent=True), end="\n\n\n")
 
 # fix random seed
