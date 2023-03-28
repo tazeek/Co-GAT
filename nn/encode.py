@@ -123,6 +123,7 @@ class GraphAttentionLayer(nn.Module):
 
     def __init__(self, in_features, out_features, dropout, alpha, concat=True):
         super(GraphAttentionLayer, self).__init__()
+        
         self.dropout = dropout
         self.in_features = in_features
         self.out_features = out_features
@@ -190,11 +191,14 @@ class UtterancePretrainedModel(nn.Module):
         cls_list = []
 
         for idx in range(0, input_p.size(0)):
+            
             if self._pretrained_model == "electra":
                 cls_tensor = self._encoder(input_p[idx], attention_mask=mask[idx])[0]
             else:
                 cls_tensor, _ = self._encoder(input_p[idx], attention_mask=mask[idx])
+            
             cls_tensor = cls_tensor[:, 0, :]
             linear_out = self._linear(cls_tensor.unsqueeze(0))
             cls_list.append(linear_out)
+        
         return torch.cat(cls_list, dim=0)
