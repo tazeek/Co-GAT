@@ -39,7 +39,7 @@ def training(model, data_iter, max_grad=10.0, bert_lr=1e-5, pretrained_model="no
     return total_loss, time_con
 
 
-def evaluate(model, data_iter, normal_metric):
+def evaluate(model, data_iter, mastodon_metric):
     model.eval()
 
     gold_sent, pred_sent = [], []
@@ -52,10 +52,11 @@ def evaluate(model, data_iter, normal_metric):
 
         with torch.no_grad():
             p_sent, p_act = model.predict(utt, adj, adj_full, adj_I)
+        
         pred_sent.extend(p_sent)
         pred_act.extend(p_act)
 
-    if not normal_metric:
+    if not mastodon_metric:
         reference = ReferMetric(
             len(model.sent_vocab), len(model.act_vocab),
             model.sent_vocab.index("+"), model.sent_vocab.index("-")
