@@ -45,33 +45,35 @@ def get_hyperparams_args():
 
     return parser.parse_args()
 
-def build_datasets(args):
+def build_datasets(data_dir, pretrained_model):
 
     # Build dataset
-    data_house = DataHub.from_dir_addadj(args.data_dir)
+    data_house = DataHub.from_dir_addadj(data_dir)
+
     # piece vocab
-    piece_vocab = PieceAlphabet("piece", pretrained_model=args.pretrained_model)
+    piece_vocab = PieceAlphabet("piece", pretrained_model= pretrained_model)
 
     return data_house, piece_vocab
 
 
 args = get_hyperparams_args()
 print(json.dumps(args.__dict__, indent=True), end="\n\n\n")
-exit()
 
 # fix random seed
 fix_random_state(args.random_state)
 
 # Get the datasets
-data_house, piece_vocab = build_datasets(args)
+labeled_data_house, labeled_piece_vocab = build_datasets(args.data_dir, args.pretrained_model)
+
 
 model = TaggingAgent(
-    data_house.word_vocab, piece_vocab, data_house.sent_vocab,
-    data_house.act_vocab, data_house.adj_vocab, data_house.adj_full_vocab, 
-    data_house.adj_id_vocab, args.embedding_dim,
+    labeled_data_house.word_vocab, labeled_piece_vocab, labeled_data_house.sent_vocab,
+    labeled_data_house.act_vocab, labeled_data_house.adj_vocab, labeled_data_house.adj_full_vocab, 
+    labeled_data_house.adj_id_vocab, args.embedding_dim,
     args.hidden_dim, args.num_layer, args.gat_layer, args.gat_dropout_rate, 
     args.dropout_rate,
-    args.linear_decoder, args.pretrained_model)
+    args.linear_decoder, args.pretrained_model
+)
 
 if torch.cuda.is_available():
     model = model.cuda()
