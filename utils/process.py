@@ -16,16 +16,20 @@ def training(model, data_iter, max_grad=10.0, bert_lr=1e-5, pretrained_model="no
     # using pretrain model need to change optimizer (Adam -> AdamW).
     if pretrained_model != "none":
         optimizer = AdamW(model.parameters(), lr=bert_lr, correct_bias=False)
+    
     else:
         optimizer = Adam(model.parameters(), weight_decay=1e-8)
+    
     time_start, total_loss = time.time(), 0.0
 
     for data_batch in tqdm(data_iter, ncols=50):
+
         batch_loss = model.measure(*data_batch)
         total_loss += batch_loss.cpu().item()
 
         optimizer.zero_grad()
         batch_loss.backward()
+
         torch.nn.utils.clip_grad_norm_(
             model.parameters(), max_grad
         )
