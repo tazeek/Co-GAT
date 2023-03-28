@@ -26,6 +26,7 @@ def _save_confusion_matrix(sent_matrix, act_matrix):
     return None
 
 def training(model, data_iter, max_grad=10.0, bert_lr=1e-5, pretrained_model="none"):
+
     model.train()
 
     # using pretrain model need to change optimizer (Adam -> AdamW).
@@ -48,6 +49,7 @@ def training(model, data_iter, max_grad=10.0, bert_lr=1e-5, pretrained_model="no
         torch.nn.utils.clip_grad_norm_(
             model.parameters(), max_grad
         )
+
         optimizer.step()
 
     time_con = time.time() - time_start
@@ -55,6 +57,7 @@ def training(model, data_iter, max_grad=10.0, bert_lr=1e-5, pretrained_model="no
 
 
 def evaluate(model, data_iter, mastodon_metric):
+
     model.eval()
 
     gold_sent, pred_sent = [], []
@@ -72,20 +75,24 @@ def evaluate(model, data_iter, mastodon_metric):
         pred_act.extend(p_act)
 
     if not mastodon_metric:
+
         reference = ReferMetric(
             len(model.sent_vocab), len(model.act_vocab),
             model.sent_vocab.index("+"), model.sent_vocab.index("-")
         )
+
     else:
         reference = NormalMetric()
 
     pred_sent = iterable_support(model.sent_vocab.index, pred_sent)
     gold_sent = iterable_support(model.sent_vocab.index, gold_sent)
+
     pred_act = iterable_support(model.act_vocab.index, pred_act)
     gold_act = iterable_support(model.act_vocab.index, gold_act)
 
     pred_sent = expand_list(pred_sent)
     gold_sent = expand_list(gold_sent)
+    
     pred_act = expand_list(pred_act)
     gold_act = expand_list(gold_act)
 

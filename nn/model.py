@@ -76,7 +76,6 @@ class TaggingAgent(nn.Module):
         return self._encoder(bi_ret, adj)
 
     def forward(self, full_encoded, len_list, adj_re):
-        
         return self._decoder(full_encoded, len_list, adj_re)
 
     @property
