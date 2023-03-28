@@ -166,6 +166,10 @@ class UtterancePretrainedModel(nn.Module):
         else:
             assert False, "Something wrong with the parameter --pretrained_model"
 
+        # Freeze the layers of BERT model
+        for param in self._encoder.parameters():
+            param.requires_grad = False
+
         self._linear = nn.Linear(UtterancePretrainedModel.HIDDEN_DIM, hidden_dim)
 
     def forward(self, input_p, mask):
@@ -173,10 +177,10 @@ class UtterancePretrainedModel(nn.Module):
 
         for idx in range(0, input_p.size(0)):
             if self._pretrained_model == "electra":
-                cls_tensor = self._encoder(input_p[idx], attention_mask=mask[idx])[0]
+                output = self._encoder(input_p[idx], attention_mask=mask[idx])[0]
             else:
-                cls_tensor, _ = self._encoder(input_p[idx], attention_mask=mask[idx])
-            cls_tensor = cls_tensor[:, 0, :]
+                output = self._encoder(input_p[idx], attention_mask=mask[idx])
+            cls_tensor = output.pooler_output
             linear_out = self._linear(cls_tensor.unsqueeze(0))
             cls_list.append(linear_out)
         return torch.cat(cls_list, dim=0)

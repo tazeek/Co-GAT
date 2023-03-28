@@ -3,6 +3,7 @@ import sys
 import json
 import torch
 import argparse
+import time
 
 from utils import DataHub
 from nn import TaggingAgent
@@ -61,9 +62,22 @@ else:
 if not os.path.exists(args.save_dir):
     os.makedirs(args.save_dir)
 
+n_trainable_params, n_nontrainable_params = 0, 0
+
+for p in model.parameters():
+    n_params = torch.prod(torch.tensor(p.shape))
+    if p.requires_grad:
+        n_trainable_params += n_params
+    else:
+        n_nontrainable_params += n_params
+
+print('> n_trainable_params: {0}, n_nontrainable_params: {1}'.format(n_trainable_params, n_nontrainable_params))
+
 dev_best_sent, dev_best_act = 0.0, 0.0
 test_sent_sent, test_sent_act = 0.0, 0.0
 test_act_sent, test_act_act = 0.0, 0.0
+
+start_time = time.time()
 
 for epoch in range(0, args.num_epoch + 1):
     print("Training Epoch: {:4d} ...".format(epoch), file=sys.stderr)
@@ -72,13 +86,23 @@ for epoch in range(0, args.num_epoch + 1):
                                       10.0, args.bert_learning_rate, args.pretrained_model)
     print("[Epoch{:4d}], train loss is {:.4f}, cost {:.4f} s.".format(epoch, train_loss, train_time))
 
-    dev_sent_f1, _, _, dev_act_f1, _, _, dev_time = evaluate(
+    dev_sent_f1, dev_sent_r, dev_sent_p, dev_act_f1, dev_act_r, dev_act_p, dev_time = evaluate(
         model, data_house.get_iterator("dev", args.batch_size, False), metric)
     test_sent_f1, sent_r, sent_p, test_act_f1, act_r, act_p, test_time = evaluate(
         model, data_house.get_iterator("test", args.batch_size, False), metric)
+    
+    print("Development Set")
+    print("=" * 15)
+    print(f"Sentiment:\nF1: {dev_sent_f1}\nRecall: {dev_sent_r}\nPrecision: {dev_sent_p}\n\n")
+    print(f"Dialog Act:\nF1: {dev_act_f1}\nRecall: {dev_act_r}\nPrecision: {dev_act_p}\n\n")
 
-    print("On dev, sentiment f1: {:.4f}, act f1: {:.4f}".format(dev_sent_f1, dev_act_f1))
-    print("On test, sentiment f1: {:.4f}, act f1 {:.4f}".format(test_sent_f1, test_act_f1))
+    print("Test Set")
+    print("=" * 15)
+    print(f"Sentiment:\nF1: {test_sent_f1}\nRecall: {sent_r}\nPrecision: {sent_p}\n\n")
+    print(f"Dialog Act:\nF1: {test_act_f1}\nRecall: {act_r}\nPrecision: {act_p}\n\n")
+
+    #print("On dev, sentiment f1: {:.4f}, act f1: {:.4f}".format(dev_sent_f1, dev_act_f1))
+    #print("On test, sentiment f1: {:.4f}, act f1 {:.4f}".format(test_sent_f1, test_act_f1))
     print("Dev and test cost {:.4f} s.\n".format(dev_time + test_time))
 
     # if get a higher score on dev set, do predict on test set, base on sent or act.
@@ -107,3 +131,8 @@ for epoch in range(0, args.num_epoch + 1):
         torch.save(model, os.path.join(args.save_dir, "model.pt"))
 
         print("", end="\n")
+
+total_training_time = time.time() - start_time
+print(f"\n\nTotal training time: {total_training_time:.4f} s.")
+
+torch.save(model, os.path.join(args.save_dir, "model_tazeek_full.pt"))
