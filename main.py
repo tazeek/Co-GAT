@@ -13,8 +13,8 @@ from utils.dict import PieceAlphabet
 
 def get_hyperparams_args():
 
-
     parser = argparse.ArgumentParser()
+
     # Pre-train Hyper parameter
     parser.add_argument("--pretrained_model", "-pm", type=str, default="none",
                         choices=["none", "bert", "roberta", "xlnet", "albert", "electra"],
@@ -23,12 +23,15 @@ def get_hyperparams_args():
                         help="Using Linear decoder to get category.")
     parser.add_argument("--bert_learning_rate", "-blr", type=float, default=1e-5,
                         help="The learning rate of all types of pretrain model.")
+    
     # Basic Hyper parameter
     parser.add_argument("--data_dir", "-dd", type=str, default="dataset/mastodon")
+    parser.add_argument("--semi_sup_dir","-ssd",type=str, default="dataset/dailydialogue")
     parser.add_argument("--save_dir", "-sd", type=str, default="./save")
     parser.add_argument("--batch_size", "-bs", type=int, default=16)
     parser.add_argument("--num_epoch", "-ne", type=int, default=300)
     parser.add_argument("--random_state", "-rs", type=int, default=0)
+    parser.add_argument("--vat_applied", "-vat", type=bool, default=False)
 
     # Model Hyper parameter
     parser.add_argument("--num_layer", "-nl", type=int, default=2,
@@ -54,6 +57,7 @@ def build_datasets(args):
 
 args = get_hyperparams_args()
 print(json.dumps(args.__dict__, indent=True), end="\n\n\n")
+exit()
 
 # fix random seed
 fix_random_state(args.random_state)

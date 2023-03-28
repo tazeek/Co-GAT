@@ -28,9 +28,15 @@ The script **main.py** acts as a main function to the project, you can run the e
   ``` shell script
     # Mastodon
     CUDA_VISIBLE_DEVICES=$1 python -u main.py -ed 800 -sd save/mastodon -dd dataset/mastodon
+
+    # Mastodon (With VAT)
+    CUDA_VISIBLE_DEVICES=$1 python -u main.py -ed 800 -sd save/mastodon -dd dataset/mastodon -ssd dataset/dailydialogue -vat True
   
     # Dailydialogue
     CUDA_VISIBLE_DEVICES=$1 python -u main.py -bs 32 -ne 100 -dr 0.07 -gl 3 -sd save/dailydialogue -dd dataset/dailydialogue
+
+    # Dailydialogue (with VAT)
+    CUDA_VISIBLE_DEVICES=$1 python -u main.py -bs 32 -ne 100 -dr 0.07 -gl 3 -sd save/dailydialogue -dd dataset/dailydialogue -ssd dataset/mastodon -vat True
   ```
 
 Due to some stochastic factors(e.g., GPU and environment), it maybe need to slightly tune the hyper-parameters using grid search to reproduce the results reported in our paper.
