@@ -41,16 +41,25 @@ def get_hyperparams_args():
 
     return parser.parse_args()
 
+def build_datasets(args):
+
+    # Build dataset
+    data_house = DataHub.from_dir_addadj(args.data_dir)
+    # piece vocab
+    piece_vocab = PieceAlphabet("piece", pretrained_model=args.pretrained_model)
+
+    return data_house, piece_vocab
+
+
 args = get_hyperparams_args()
 print(json.dumps(args.__dict__, indent=True), end="\n\n\n")
 
 # fix random seed
 fix_random_state(args.random_state)
 
-# Build dataset
-data_house = DataHub.from_dir_addadj(args.data_dir)
-# piece vocab
-piece_vocab = PieceAlphabet("piece", pretrained_model=args.pretrained_model)
+# Get the datasets
+data_house, piece_vocab = build_datasets(args)
+
 model = TaggingAgent(
     data_house.word_vocab, piece_vocab, data_house.sent_vocab,
     data_house.act_vocab, data_house.adj_vocab, data_house.adj_full_vocab, data_house.adj_id_vocab, args.embedding_dim,
