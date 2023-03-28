@@ -40,7 +40,7 @@ class BiGraphEncoder(nn.Module):
 
         return hidden_w
 
-    def forward(self, bi_ret, adj, mask=None):
+    def forward(self, bi_ret, adj):
 
         ret = self._dialog_layer_user(bi_ret, adj)
         return ret

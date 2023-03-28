@@ -71,12 +71,13 @@ class TaggingAgent(nn.Module):
 
     def extract_utterance_features(self, input_w, mask=None):
         return self._encoder.extract_utterances(input_w, mask)
+    
+    def extract_from_speaker_layer(self, bi_ret, adj):
+        return self._encoder(bi_ret, adj)
 
-    def forward(self, input_h, len_list, adj, adj_full, adj_re, mask=None):
+    def forward(self, full_encoded, len_list, adj_re):
         
-        encode_h = self._encoder(input_h, adj, adj_full, mask)
-        
-        return self._decoder(encode_h, len_list, adj_re)
+        return self._decoder(full_encoded, len_list, adj_re)
 
     @property
     def sent_vocab(self):
@@ -260,14 +261,18 @@ class TaggingAgent(nn.Module):
         
         # Perform predictions
         if self._pretrained_model != "none":
-            
-            pred_sent, pred_act = self.forward(var_p, len_list, var_adj, 
-                                               var_adj_full, var_adj_R, mask)
+
+            bi_ret = self.extract_utterance_features(var_utt, mask)
+            full_encoded = self.extract_from_speaker_layer(bi_ret, var_adj)
+
+            pred_sent, pred_act = self.forward(full_encoded, len_list, var_adj_R)
         
         else:
             
-            pred_sent, pred_act = self.forward(var_utt, len_list, var_adj, 
-                                               var_adj_full, var_adj_R, None)
+            bi_ret = self.extract_utterance_features(var_utt, mask)
+            full_encoded = self.extract_from_speaker_layer(bi_ret, var_adj)
+
+            pred_sent, pred_act = self.forward(full_encoded, len_list, var_adj_R)
 
         # Get the labels
         trim_list = [len(l) for l in len_list]
@@ -333,12 +338,19 @@ class TaggingAgent(nn.Module):
 
         # Training starts here
         if self._pretrained_model != "none":
-            pred_sent, pred_act = self.forward(var_p, len_list, var_adj, 
-                                               var_adj_full, var_adj_R, mask)
+
+            bi_ret = self.extract_utterance_features(var_utt, mask)
+            full_encoded = self.extract_from_speaker_layer(bi_ret, var_adj)
+
+            pred_sent, pred_act = self.forward(full_encoded, len_list, var_adj_R)
+
             
         else:
-            pred_sent, pred_act = self.forward(var_utt, len_list, var_adj, 
-                                               var_adj_full, var_adj_R, None)
+
+            bi_ret = self.extract_utterance_features(var_utt, mask)
+            full_encoded = self.extract_from_speaker_layer(bi_ret, var_adj)
+
+            pred_sent, pred_act = self.forward(full_encoded, len_list, var_adj_R)
        
         trim_list = [len(l) for l in len_list]
 
