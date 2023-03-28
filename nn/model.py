@@ -82,39 +82,49 @@ class TaggingAgent(nn.Module):
         return self._act_vocab
 
     def _wrap_padding(self, dial_list, adj_list, adj_full_list, adj_id_list, use_noise):
+        
+        # Find maximum dialog length
         dial_len_list = [len(d) for d in dial_list]
         max_dial_len = max(dial_len_list)
 
+        # Find the maximum adj len (WHAT IS ADJ?)
         adj_len_list = [len(adj) for adj in adj_list]
         max_adj_len = max(adj_len_list)
 
+        # Find the maximum adj full (What is ADJ FULL?)
         # add adj_full
         adj_full_len_list = [len(adj_full) for adj_full in adj_full_list]
         max_adj_full_len = max(adj_full_len_list)
 
+        # Find the maximum adj full (What is ADJ I?)
         # add adj_I
         adj_id_len_list = [len(adj_I) for adj_I in adj_id_list]
         max_adj_id_len = max(adj_id_len_list)
 
+        # Check via assertion
         assert max_dial_len == max_adj_len, str(max_dial_len) + " " + str(max_adj_len)
         assert max_adj_full_len == max_adj_len, str(max_adj_full_len) + " " + str(max_adj_len)
         assert max_adj_id_len == max_adj_full_len, str(max_adj_id_len) + " " + str(max_adj_full_len)
 
+        # Find the maximum turns in conversation
         turn_len_list = [[len(u) for u in d] for d in dial_list]
         max_turn_len = max(expand_list(turn_len_list))
 
+        # Find the maximum turns in for adj len (WHY?)
         turn_adj_len_list = [[len(u) for u in adj] for adj in adj_list]
         max_turn_adj_len = max(expand_list(turn_adj_len_list))
 
-        # add adj_full
+        # Find the maximum turns in for adj full len (WHY?)
         turn_adj_full_len_list = [[len(u) for u in adj_full] for adj_full in adj_full_list]
         max_turn_adj_full_len = max(expand_list(turn_adj_full_len_list))
 
-        # add adj_I
+        # Find the maximum turns in for adj ID (WHY?)
         turn_adj_id_len_list = [[len(u) for u in adj_I] for adj_I in adj_id_list]
         max_turn_adj_id_len = max(expand_list(turn_adj_id_len_list))
 
         pad_adj_list = []
+
+        # Perform padding (On Pad Adj)
         for dial_i in range(0, len(adj_list)):
             pad_adj_list.append([])
 
@@ -127,6 +137,8 @@ class TaggingAgent(nn.Module):
                 pad_adj_list[-1].extend(pad_dial)
 
         pad_adj_full_list = []
+
+        # Perform padding (On Pad Adj Full)
         for dial_i in range(0, len(adj_full_list)):
             pad_adj_full_list.append([])
 
@@ -139,6 +151,8 @@ class TaggingAgent(nn.Module):
                 pad_adj_full_list[-1].extend(pad_dial)
 
         pad_adj_id_list = []
+
+        # Perform padding (On Pad ID Full)
         for dial_i in range(0, len(adj_id_list)):
             pad_adj_id_list.append([])
 
@@ -151,9 +165,12 @@ class TaggingAgent(nn.Module):
                 pad_adj_id_list[-1].extend(pad_dial)
 
         pad_adj_R_list = []
+
+        # Perform padding (On Pad Adj R)
         for dial_i in range(0, len(pad_adj_id_list)):
             pad_adj_R_list.append([])
             assert len(pad_adj_id_list[dial_i]) == len(pad_adj_full_list[dial_i])
+            
             for i in range(len(pad_adj_full_list[dial_i])):
                 full = pad_adj_full_list[dial_i][i]
                 pad_utt_up = full + full
@@ -167,6 +184,7 @@ class TaggingAgent(nn.Module):
         assert len(pad_adj_id_list[0]) * 2 == len(pad_adj_R_list[0]), pad_adj_R_list[0]
 
         pad_w_list, pad_sign = [], self._word_vocab.PAD_SIGN
+        
         for dial_i in range(0, len(dial_list)):
             pad_w_list.append([])
 
@@ -200,6 +218,7 @@ class TaggingAgent(nn.Module):
         max_p_len = max(expand_list(p_len_list))
 
         pad_p_list, mask = [], []
+
         for dial_i in range(0, len(piece_list)):
             pad_p_list.append([])
             mask.append([])
@@ -209,6 +228,7 @@ class TaggingAgent(nn.Module):
                 pad_p_list[-1].append(self._piece_vocab.index(pad_t))
                 mask[-1].append([1] * len(turn) + [0] * (max_p_len - len(turn)))
 
+        # Count to Tensors and mount onto Cuda
         var_w_dial = torch.LongTensor(pad_w_list)
         var_p_dial = torch.LongTensor(pad_p_list)
         var_mask = torch.LongTensor(mask)
@@ -229,17 +249,22 @@ class TaggingAgent(nn.Module):
 
     def predict(self, utt_list, adj_list, adj_full_list, adj_id_list):
         
+        # Perform preprocessing
         var_utt, var_p, mask, len_list, _, var_adj, var_adj_full, var_adj_R = \
             self._wrap_padding(utt_list, adj_list, adj_full_list, adj_id_list, False)
         
+        # Perform predictions
         if self._pretrained_model != "none":
             
-            pred_sent, pred_act = self.forward(var_p, len_list, var_adj, var_adj_full, var_adj_R, mask)
+            pred_sent, pred_act = self.forward(var_p, len_list, var_adj, 
+                                               var_adj_full, var_adj_R, mask)
         
         else:
             
-            pred_sent, pred_act = self.forward(var_utt, len_list, var_adj, var_adj_full, var_adj_R, None)
+            pred_sent, pred_act = self.forward(var_utt, len_list, var_adj, 
+                                               var_adj_full, var_adj_R, None)
 
+        # Get the labels
         trim_list = [len(l) for l in len_list]
         
         flat_sent = torch.cat(
@@ -252,9 +277,12 @@ class TaggingAgent(nn.Module):
              i in range(0, len(trim_list))], dim=0
         )
 
+        # Narrow down to top-k (In this case, the top label)
         _, top_sent = flat_sent.topk(1, dim=-1)
         _, top_act = flat_act.topk(1, dim=-1)
 
+        # Mount to CPU and convert to list
+        # Return once done
         sent_list = top_sent.cpu().numpy().flatten().tolist()
         act_list = top_act.cpu().numpy().flatten().tolist()
 
