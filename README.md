@@ -22,6 +22,10 @@ Our code relies on Python 3.6 and following libraries:
 ## Run 
 We will teach you how to run our code step by step.
 
+## For Tazeek's info
+Mastodon Utterances: 243 (Train), 26 (Dev), 267 (Test)
+DailyDialogue: 11118 (Train), 1000 (Dev), 1000 (Test)
+
 ### Quick start
 The script **main.py** acts as a main function to the project, you can run the experiments by the following commands.
 
@@ -54,6 +58,7 @@ You can use the `--pretrained_model` parameter in **main.py** to control the typ
 And `--bert_learning_rate` parameter ti control the learning rate of the pretrained model.
 We provide interfaces for these models: [BERT, RoBERTa, XLNet, ALBERT, ELECTRA]
 You can write command like this:
+
 ``` shell script
   # Mastodon
   CUDA_VISIBLE_DEVICES=$1 python -u main.py -pm roberta -blr 2e-6 -bs 1 -ne 200 -sd save/mastodon-roberta -dd dataset/mastodon
