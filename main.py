@@ -112,7 +112,7 @@ for epoch in range(0, args.num_epoch + 1):
     print("Training Epoch: {:4d} ...".format(epoch), file=sys.stderr)
 
     # Start training
-    train_loss, train_time = training(model, data_house.get_iterator("train", args.batch_size, True),
+    train_loss, train_time = training(model, labeled_data_house.get_iterator("train", args.batch_size, True),
                                       10.0, args.bert_learning_rate, args.pretrained_model)
     
     # Training dataset update
@@ -120,11 +120,11 @@ for epoch in range(0, args.num_epoch + 1):
 
     # Validation dataset
     dev_sent_f1, dev_sent_r, dev_sent_p, dev_act_f1, dev_act_r, dev_act_p, dev_time = evaluate(
-        model, data_house.get_iterator("dev", args.batch_size, False), use_mastodon_metric)
+        model, labeled_data_house.get_iterator("dev", args.batch_size, False), use_mastodon_metric)
     
     # Testing dataset
     test_sent_f1, sent_r, sent_p, test_act_f1, act_r, act_p, test_time = evaluate(
-        model, data_house.get_iterator("test", args.batch_size, False), use_mastodon_metric)
+        model, labeled_data_house.get_iterator("test", args.batch_size, False), use_mastodon_metric)
     
     print("Development Set")
     print("=" * 15)

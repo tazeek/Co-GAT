@@ -69,8 +69,8 @@ class TaggingAgent(nn.Module):
         self._encoder.add_missing_arg(pretrained_model)
         self._decoder.add_missing_arg(layer)
 
-    def encode_utterances(self, input_h, adj, adj_full, mask):
-        return self._encoder(input_h, adj, adj_full, mask)
+    def extract_utterance_features(self, input_w, mask=None):
+        return self._encoder.extract_utterances(input_w, mask)
 
     def forward(self, input_h, len_list, adj, adj_full, adj_re, mask=None):
         
