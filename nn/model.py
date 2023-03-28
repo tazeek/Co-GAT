@@ -228,18 +228,25 @@ class TaggingAgent(nn.Module):
             var_adj_R_dial
 
     def predict(self, utt_list, adj_list, adj_full_list, adj_id_list):
+        
         var_utt, var_p, mask, len_list, _, var_adj, var_adj_full, var_adj_R = \
             self._wrap_padding(utt_list, adj_list, adj_full_list, adj_id_list, False)
+        
         if self._pretrained_model != "none":
+            
             pred_sent, pred_act = self.forward(var_p, len_list, var_adj, var_adj_full, var_adj_R, mask)
+        
         else:
+            
             pred_sent, pred_act = self.forward(var_utt, len_list, var_adj, var_adj_full, var_adj_R, None)
 
         trim_list = [len(l) for l in len_list]
+        
         flat_sent = torch.cat(
             [pred_sent[i, :trim_list[i], :] for
              i in range(0, len(trim_list))], dim=0
         )
+        
         flat_act = torch.cat(
             [pred_act[i, :trim_list[i], :] for
              i in range(0, len(trim_list))], dim=0
@@ -257,18 +264,24 @@ class TaggingAgent(nn.Module):
         string_sent = iterable_support(
             self._sent_vocab.get, nest_sent
         )
+        
         string_act = iterable_support(
             self._act_vocab.get, nest_act
         )
+        
         return string_sent, string_act
 
     def measure(self, utt_list, sent_list, act_list, adj_list, adj_full_list, adj_id_list):
+        
+        # Data Preprocessing here
         var_utt, var_p, mask, len_list, _, var_adj, var_adj_full, var_adj_R = \
             self._wrap_padding(utt_list, adj_list, adj_full_list, adj_id_list, True)
 
+        # Get the gold labels
         flat_sent = iterable_support(
             self._sent_vocab.index, sent_list
         )
+        
         flat_act = iterable_support(
             self._act_vocab.index, act_list
         )
@@ -276,30 +289,42 @@ class TaggingAgent(nn.Module):
         index_sent = expand_list(flat_sent)
         index_act = expand_list(flat_act)
 
+        # Convert to Tensors
         var_sent = torch.LongTensor(index_sent)
         var_act = torch.LongTensor(index_act)
+
+        # Mount to CUDA
         if torch.cuda.is_available():
             var_sent = var_sent.cuda()
             var_act = var_act.cuda()
 
+        # Training starts here
         if self._pretrained_model != "none":
-            pred_sent, pred_act = self.forward(var_p, len_list, var_adj, var_adj_full, var_adj_R, mask)
+            pred_sent, pred_act = self.forward(var_p, len_list, var_adj, 
+                                               var_adj_full, var_adj_R, mask)
+            
         else:
-            pred_sent, pred_act = self.forward(var_utt, len_list, var_adj, var_adj_full, var_adj_R, None)
+            pred_sent, pred_act = self.forward(var_utt, len_list, var_adj, 
+                                               var_adj_full, var_adj_R, None)
+       
         trim_list = [len(l) for l in len_list]
 
+        # Convert the predictions
         flat_pred_s = torch.cat(
             [pred_sent[i, :trim_list[i], :] for
              i in range(0, len(trim_list))], dim=0
         )
+
         flat_pred_a = torch.cat(
             [pred_act[i, :trim_list[i], :] for
              i in range(0, len(trim_list))], dim=0
         )
 
+        # Calculate the loss
         sent_loss = self._criterion(
             F.log_softmax(flat_pred_s, dim=-1), var_sent
         )
+
         act_loss = self._criterion(
             F.log_softmax(flat_pred_a, dim=-1), var_act
         )
