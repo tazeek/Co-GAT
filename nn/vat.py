@@ -18,9 +18,11 @@ def update_gradients_perturbation():
 
     ...
 
-def perform_vat(utt_list, adj_list, adj_full_list, adj_id_list):
+def perform_vat(model, utt_list, adj_list, adj_full_list, adj_id_list):
 
     # Preprocess the data, first and foremost
+    var_utt, var_p, mask, len_list, _, var_adj, var_adj_full, var_adj_R = \
+            model.preprocess_data(utt_list, adj_list, adj_full_list, adj_id_list)
 
     # Define the level of perturbation (See Canva document)
 
