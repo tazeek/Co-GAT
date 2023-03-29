@@ -1,10 +1,16 @@
 import torch
 
+def _create_random_tensor(input):
+
+    ...
+
 def _perturbation_lstm_layer(model, var_utt, mask, var_adj, len_list, var_adj_R):
 
     # Extract the features
+    bi_ret = model.extract_utterance_features(var_utt, None)
 
     # Create random tensor
+    random_tensor = _create_random_tensor()
 
     # Add the noise
 
@@ -15,7 +21,7 @@ def _perturbation_lstm_layer(model, var_utt, mask, var_adj, len_list, var_adj_R)
     # Trim off the fat
 
     # Return perturbed logits
-    
+
     ...
 
 def _convert_predictions(pred_sent, pred_act, len_list):
@@ -42,10 +48,6 @@ def _convert_predictions(pred_sent, pred_act, len_list):
     )
 
     return flat_pred_s, flat_pred_a
-
-def create_random_tensor():
-
-    ...
 
 def get_original_logits(model, var_utt, mask, var_adj, len_list, var_adj_R):
 
@@ -87,7 +89,7 @@ def perform_vat(model, perturbation_level, utt_list, adj_list, adj_full_list, ad
     # Define the level of perturbation (See Canva document)
     # Perform the necessary preprocessing (as per flow: See Canva document)
     if perturbation_level == "bilstm_layer":
-        ...
+        _perturbation_lstm_layer(model, var_utt, mask, var_adj, len_list, var_adj_R)
 
     # Create random tensor and normalize with L2
 
