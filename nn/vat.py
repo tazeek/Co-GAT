@@ -132,7 +132,8 @@ def perform_vat(model, perturbation_level, utt_list, adj_list, adj_full_list, ad
     # Get the first KL Div loss (this is on the random tensor)
     # OPTION: There are two sets of logits: Sentiment and Act
     # For now, lets focus on act
-    kl_loss = _get_kl_div_loss(original_logits_act, pert_logits_act)
+    #kl_loss = _get_kl_div_loss(original_logits_act, pert_logits_act)
+    kl_loss = _get_kl_div_loss(original_logits_sent, pert_logits_sent)
 
     # Update the gradients of the random tensor, based on the KL Div loss
     perturbation_updated = _update_gradients_perturbation(perturbation_raw, kl_loss)
