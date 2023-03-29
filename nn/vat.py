@@ -101,17 +101,13 @@ def perform_vat(model, perturbation_level, utt_list, adj_list, adj_full_list, ad
 
     # Define the level of perturbation (See Canva document)
     # Perform the necessary preprocessing (as per flow: See Canva document)
-    random_noise, pert_pred_sent, pert_pred_act = None, None, None
+    random_noise, pert_logits_sent, pert_logits_act = None, None, None
 
     if perturbation_level == "bilstm_layer":
-        random_noise, pert_pred_sent, pert_pred_act = \
+        random_noise, pert_logits_sent, pert_logits_act = \
             _perturbation_lstm_layer(model, var_utt, mask, var_adj, len_list, var_adj_R)
 
     # Get the first KL Div loss (this is on the random tensor)
-    print(f"Random noise size: {random_noise.size()}")
-    print(f"Size of Prediction Sentiment: {pert_pred_sent.size()}")
-    print(f"Size of Prediction Act: f{pert_pred_act.size()}")
-    exit()
 
     # Update the gradients of the random tensor, based on the KL Div loss
 
