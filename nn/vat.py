@@ -1,13 +1,18 @@
 import torch
+import torch.nn.functional as F
 
-def _create_random_tensor(input):
+def _create_random_tensor(input, xi=1e-6):
 
     random_noise = torch.rand_like(input)
 
     # L2 Normalization
+    random_noise = xi * F.normalize(random_noise, p=2, dim=-1)
+
+    # Mount to CUDA
+    if torch.cuda.is_available():
+        random_noise = random_noise.cuda()
 
     return random_noise
-    ...
 
 def _perturbation_lstm_layer(model, var_utt, mask, var_adj, len_list, var_adj_R):
 
@@ -15,19 +20,22 @@ def _perturbation_lstm_layer(model, var_utt, mask, var_adj, len_list, var_adj_R)
     bi_ret = model.extract_utterance_features(var_utt, None)
 
     # Create random tensor and 
-    random_tensor = _create_random_tensor()
+    random_tensor = _create_random_tensor(bi_ret)
 
     # Add the noise
+    perturbed_bi_ret = bi_ret + random_tensor
 
     # Pass to speaker layer
+    perturbed_encoded = model.extract_from_speaker_layer(perturbed_bi_ret, var_adj)
 
     # Decoding
+    pert_pred_sent, pert_pred_act = model(perturbed_encoded, len_list, var_adj_R)
 
     # Trim off the fat
+    pert_pred_sent, pert_pred_act = _convert_predictions(pert_pred_sent, pert_pred_act, len_list)
 
     # Return perturbed logits
-
-    ...
+    return pert_pred_sent, pert_pred_act
 
 def _convert_predictions(pred_sent, pred_act, len_list):
 
