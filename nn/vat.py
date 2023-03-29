@@ -16,4 +16,24 @@ def update_gradients_perturbation():
 
 def perform_vat():
 
+    # Preprocess the data, first and foremost
+
+    # Define the level of perturbation (See Canva document)
+
+    # Perform the necessary preprocessing (as per flow: See Canva document)
+
+    # Create random tensor and normalize with L2
+
+    # Get the original logits
+
+    # Get the first KL Div loss (this is on the random tensor)
+
+    # Update the gradients of the random tensor, based on the KL Div loss
+
+    # Run again with the adjusted perturbation
+
+    # Get the second KL Div loss (this is based on the updated perturbation)
+
+    # Return the loss (This is the VAT loss)
+
     ...
