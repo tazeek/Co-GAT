@@ -14,16 +14,19 @@ def _create_random_tensor(input, xi=1e-6):
 
     return random_noise
 
-def _perturbation_lstm_layer(model, var_utt, mask, var_adj, len_list, var_adj_R):
+def _perturbation_lstm_layer(model, var_utt, mask, var_adj, len_list, var_adj_R, noise = None):
 
     # Extract the features
     bi_ret = model.extract_utterance_features(var_utt, None)
 
-    # Create random tensor and 
-    random_tensor = _create_random_tensor(bi_ret)
+    # If starting the first time, there won't be noise
+    # Hence, generate it
+    # Otherwise, skip it
+    if noise is None: 
+        noise = _create_random_tensor(bi_ret)
 
     # Add the noise
-    perturbed_bi_ret = bi_ret + random_tensor
+    perturbed_bi_ret = bi_ret + noise
 
     # Pass to speaker layer
     perturbed_encoded = model.extract_from_speaker_layer(perturbed_bi_ret, var_adj)
