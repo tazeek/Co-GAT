@@ -1,12 +1,12 @@
 import torch
 import torch.nn.functional as F
 
-def _create_random_tensor(input, xi=1e-6):
+def _create_random_tensor(input, epsilon=1e-6):
 
     random_noise = torch.rand_like(input)
 
     # L2 Normalization
-    random_noise = xi * F.normalize(random_noise, p=2, dim=-1)
+    random_noise = epsilon * F.normalize(random_noise, p=2, dim=-1)
 
     # Mount to CUDA
     if torch.cuda.is_available():
@@ -34,8 +34,8 @@ def _perturbation_lstm_layer(model, var_utt, mask, var_adj, len_list, var_adj_R)
     # Trim off the fat
     pert_pred_sent, pert_pred_act = _convert_predictions(pert_pred_sent, pert_pred_act, len_list)
 
-    # Return perturbed logits
-    return pert_pred_sent, pert_pred_act
+    # Return perturbed logits and the perturbation
+    return random_tensor, pert_pred_sent, pert_pred_act
 
 def _convert_predictions(pred_sent, pred_act, len_list):
 
@@ -101,10 +101,17 @@ def perform_vat(model, perturbation_level, utt_list, adj_list, adj_full_list, ad
 
     # Define the level of perturbation (See Canva document)
     # Perform the necessary preprocessing (as per flow: See Canva document)
+    random_noise, pert_pred_sent, pert_pred_act = None, None, None
+
     if perturbation_level == "bilstm_layer":
-        _perturbation_lstm_layer(model, var_utt, mask, var_adj, len_list, var_adj_R)
+        random_noise, pert_pred_sent, pert_pred_act = \
+            _perturbation_lstm_layer(model, var_utt, mask, var_adj, len_list, var_adj_R)
 
     # Get the first KL Div loss (this is on the random tensor)
+    print(f"Random noise size: {random_noise.size()}")
+    print(f"Size of Prediction Sentiment: {pert_pred_sent.size()}")
+    print(f"Size of Prediction Act: f{pert_pred_act.size()}")
+    exit()
 
     # Update the gradients of the random tensor, based on the KL Div loss
 
