@@ -8,7 +8,7 @@ import time
 from utils import DataHub
 from nn import TaggingAgent
 from utils import fix_random_state
-from utils import training, evaluate
+from utils import training, evaluate, vat_training
 from utils.dict import PieceAlphabet
 
 def get_hyperparams_args():
@@ -127,6 +127,11 @@ for epoch in range(0, args.num_epoch + 1):
     
     # Training dataset update
     print("[Epoch{:4d}], train loss is {:.4f}, cost {:.4f} s.".format(epoch, train_loss, train_time))
+
+    # Perform VAT
+    if args.vat_applied:
+        vat_loss, vat_time = vat_training(model, labeled_data_house.get_iterator("dev", args.batch_size, True),
+                                          10.0, args.bert_learning_rate, args.pretrained_model)
 
     # Validation dataset
     dev_sent_f1, dev_sent_r, dev_sent_p, dev_act_f1, dev_act_r, dev_act_p, dev_time = evaluate(
