@@ -144,12 +144,5 @@ def perform_vat(model, perturbation_level, utt_list, adj_list, adj_full_list, ad
     # Get the second KL Div loss (this is based on the updated perturbation)
     new_kl_loss = _get_kl_div_loss(original_logits_act, pert_logits_act)
 
-    print("\n\nBEFORE\n\n")
-    print(f"KL LOSS: {kl_loss}")
-
-    print("\n\nAFTER\n\n")
-    print(f"KL LOSS: {new_kl_loss}")
-    exit()
-
     # Return the loss (This is the VAT loss)
     return new_kl_loss
