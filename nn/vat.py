@@ -30,6 +30,10 @@ def get_original_logits(model, var_p, mask, var_adj, len_list, var_adj_R):
 
     # BiLSTM first
     bi_ret = model.extract_utterance_features(var_p, mask)
+    print(bi_ret)
+    print("\n\n\n")
+    print(bi_ret.size())
+    exit()
 
     # Speaker layer next
     full_encoded = model.extract_from_speaker_layer(bi_ret, var_adj)
@@ -39,7 +43,6 @@ def get_original_logits(model, var_p, mask, var_adj, len_list, var_adj_R):
 
     # Conversion
     pred_sent, pred_act = _convert_predictions(pred_sent, pred_act, len_list)
-    
 
     return None
 
@@ -58,6 +61,10 @@ def perform_vat(model, perturbation_level, utt_list, adj_list, adj_full_list, ad
             model.preprocess_data(utt_list, adj_list, adj_full_list, adj_id_list)
     
     # Get the original logits
+    original_logits_sent, original_logits_act = get_original_logits(
+        model, var_p, mask, var_adj, 
+        len_list, var_adj_R
+    )
 
     # Define the level of perturbation (See Canva document)
     # Perform the necessary preprocessing (as per flow: See Canva document)
