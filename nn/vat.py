@@ -1,3 +1,23 @@
+import torch
+
+def _convert_predictions(pred_sent, pred_act, len_list):
+
+    # Convert predictions
+    trim_list = [len(l) for l in len_list]
+
+    # Convert the predictions
+    flat_pred_s = torch.cat(
+        [pred_sent[i, :trim_list[i], :] for
+            i in range(0, len(trim_list))], dim=0
+    )
+
+    flat_pred_a = torch.cat(
+        [pred_act[i, :trim_list[i], :] for
+            i in range(0, len(trim_list))], dim=0
+    )
+
+    return flat_pred_s, flat_pred_a
+
 def create_random_tensor():
 
     ...
@@ -16,6 +36,10 @@ def get_original_logits(model, var_p, mask, var_adj, len_list, var_adj_R):
 
     # The decoding next
     pred_sent, pred_act = model(full_encoded, len_list, var_adj_R)
+
+    # Conversion
+    pred_sent, pred_act = _convert_predictions(pred_sent, pred_act, len_list)
+    
 
     return None
 
