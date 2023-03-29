@@ -51,6 +51,7 @@ Here are the suggested hyper-parameter settings:
   > + hidden_dim [256, 400, 512, 600, 800, 1024]
   > + dropout_rate [0.07, 0.1, 0.14, 0.2, 0.3]
   > + gat_dropout_rate [0.07, 0.1, 0.14, 0.2, 0.3]
+  > + perturbation_layer ['bilstm_layer', 'speaker_layer']
 
 
 ### Pre-trained Model
@@ -88,29 +89,3 @@ For loading the best model and get the results reported in our paper. Please use
     # Dailydialogue
     CUDA_VISIBLE_DEVICES=$1 python -u test_model.py -bs 32 -sd save/dailydialogue -dd dataset/dailydialogue
    ```
-
-
-
-## Citation
-If you use any source codes included in this repo in your work, please cite the following paper. 
-The bibtex is listed below:
-
-<pre>
-@inproceedings{qin2021co,
-  title={Co-GAT: A Co-Interactive Graph Attention Network for Joint Dialog Act Recognition and Sentiment Classification},
-  author={Qin, Libo and Li, Zhouyang and Che, Wanxiang and Ni, Minheng and Liu, Ting},
-  booktitle={Proceedings of the AAAI Conference on Artificial Intelligence},
-  volume={35},
-  number={15},
-  pages={13709--13717},
-  year={2021}
-}
-</pre>
-
-## Issues/PRs/Questions 
-Feel free to contact [me](mailto:zhouyangli@ir.hit.edu.cn) for any questions or create issues/prs.
-
-## Acknowledgement
-https://github.com/Diego999/pyGAT
-
-We are very grateful for their pytorch implementation of GAT!!
