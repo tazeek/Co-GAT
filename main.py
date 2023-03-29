@@ -17,8 +17,19 @@ def get_file_names(args):
     model_file_name = 'model_cogat'
     cm_file_name = 'cm_cogat'
 
+    # Dataset is the first
+    dataset = args.data_dir.split('/')[-1]
+
+    model_file_name += '_' + dataset
+    cm_file_name += '_' + dataset
+
+    # Followed by VAT
+    if args.vat_applied is True:
+        model_file_name += '_' + 'vat_' + args.perturbation
+        cm_file_name += '_' + 'vat_' + args.perturbation
+        ...
+
     return model_file_name, cm_file_name
-    ...
 
 def get_hyperparams_args():
 
@@ -41,6 +52,7 @@ def get_hyperparams_args():
     parser.add_argument("--num_epoch", "-ne", type=int, default=300)
     parser.add_argument("--random_state", "-rs", type=int, default=0)
     parser.add_argument("--vat_applied", "-vat", type=bool, default=False)
+    parser.add_argument("--perturbation", "-pert", type=str, default='')
 
     # Model Hyper parameter
     parser.add_argument("--num_layer", "-nl", type=int, default=2,
