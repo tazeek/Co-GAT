@@ -8,7 +8,8 @@ import time
 from utils import DataHub
 from nn import TaggingAgent
 from utils import fix_random_state
-from utils import training, evaluate, vat_training
+from utils import training, evaluate
+from utils.process import vat_training
 from utils.dict import PieceAlphabet
 
 def get_hyperparams_args():
