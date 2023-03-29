@@ -127,7 +127,7 @@ for epoch in range(0, args.num_epoch + 1):
                                       10.0, args.bert_learning_rate, args.pretrained_model)
     
     # Training dataset update
-    print("[Epoch{:4d} - Training], train loss is {:.4f}, cost {:.4f} s.".format(epoch, train_loss, train_time))
+    print(f"\n[Epoch{epoch} - Training], train loss is {train_loss:.4f}, cost {train_time:.4f} s.\n")
 
     # Perform VAT
     if args.vat_applied:
@@ -135,20 +135,20 @@ for epoch in range(0, args.num_epoch + 1):
         vat_loss, vat_time = vat_training(model, labeled_data_house.get_iterator("dev", args.batch_size, True),
                                           10.0, args.bert_learning_rate, args.pretrained_model)
         
-        print("[Epoch{:4d} - VAT], VAT loss is {:.4f}, cost {:.4f} s.".format(epoch, vat_loss, vat_time))
+        print(f"\n[Epoch{epoch} - VAT], VAT loss is {vat_loss}, cost {vat_time} s.\n".format(epoch, vat_loss, vat_time))
 
-    # Validation dataset
-    dev_sent_f1, dev_sent_r, dev_sent_p, dev_act_f1, dev_act_r, dev_act_p, dev_time = evaluate(
-        model, labeled_data_house.get_iterator("dev", args.batch_size, False), use_mastodon_metric)
+    # Validation dataset (Skip it)
+    #dev_sent_f1, dev_sent_r, dev_sent_p, dev_act_f1, dev_act_r, dev_act_p, dev_time = evaluate(
+    #    model, labeled_data_house.get_iterator("dev", args.batch_size, False), use_mastodon_metric)
     
     # Testing dataset
     test_sent_f1, sent_r, sent_p, test_act_f1, act_r, act_p, test_time = evaluate(
         model, labeled_data_house.get_iterator("test", args.batch_size, False), use_mastodon_metric)
     
-    print("Development Set")
-    print("=" * 15)
-    print(f"Sentiment:\nF1: {dev_sent_f1}\nRecall: {dev_sent_r}\nPrecision: {dev_sent_p}\n\n")
-    print(f"Dialog Act:\nF1: {dev_act_f1}\nRecall: {dev_act_r}\nPrecision: {dev_act_p}\n\n")
+    #print("Development Set")
+    #print("=" * 15)
+    #print(f"Sentiment:\nF1: {dev_sent_f1}\nRecall: {dev_sent_r}\nPrecision: {dev_sent_p}\n\n")
+    #print(f"Dialog Act:\nF1: {dev_act_f1}\nRecall: {dev_act_r}\nPrecision: {dev_act_p}\n\n")
 
     print("Test Set")
     print("=" * 15)
@@ -159,7 +159,7 @@ for epoch in range(0, args.num_epoch + 1):
 
     #print("On dev, sentiment f1: {:.4f}, act f1: {:.4f}".format(dev_sent_f1, dev_act_f1))
     #print("On test, sentiment f1: {:.4f}, act f1 {:.4f}".format(test_sent_f1, test_act_f1))
-    print("Dev and test cost {:.4f} s.\n".format(dev_time + test_time))
+    #print("Dev and test cost {:.4f} s.\n".format(dev_time + test_time))
 
 total_training_time = time.time() - start_time
 print(f"\n\nTotal training time: {total_training_time:.4f} s.")
