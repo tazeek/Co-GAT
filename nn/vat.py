@@ -1,12 +1,12 @@
 import torch
 import torch.nn.functional as F
 
-def _create_random_tensor(input, epsilon=1e-6):
+def _create_random_tensor(input, xi=1e-6):
 
     random_noise = torch.rand_like(input)
 
     # L2 Normalization
-    random_noise = epsilon * F.normalize(random_noise, p=2, dim=-1)
+    random_noise = xi * F.normalize(random_noise, p=2, dim=-1)
 
     # Mount to CUDA
     if torch.cuda.is_available():
@@ -62,7 +62,7 @@ def _convert_predictions(pred_sent, pred_act, len_list):
 
     return flat_pred_s, flat_pred_a
 
-def get_original_logits(model, var_utt, mask, var_adj, len_list, var_adj_R):
+def _get_original_logits(model, var_utt, mask, var_adj, len_list, var_adj_R):
 
     # BiLSTM first
     bi_ret = model.extract_utterance_features(var_utt, None)
@@ -78,9 +78,14 @@ def get_original_logits(model, var_utt, mask, var_adj, len_list, var_adj_R):
 
     return pred_sent, pred_act
 
-def get_kl_div_loss(original_logits, perturbed_logits):
+def _get_kl_div_loss(original_logits, perturbed_logits):
 
-    ...
+    perturbed = F.log_softmax(perturbed_logits, dim=-1)
+    original = F.softmax(original_logits, dim=-1)
+
+    kl_div_loss = F.kl_div(perturbed, original, reduction='batchmean')
+
+    return kl_div_loss
 
 def update_gradients_perturbation():
 
@@ -94,10 +99,13 @@ def perform_vat(model, perturbation_level, utt_list, adj_list, adj_full_list, ad
             model.preprocess_data(utt_list, adj_list, adj_full_list, adj_id_list)
     
     # Get the original logits
-    original_logits_sent, original_logits_act = get_original_logits(
-        model, var_utt, mask, var_adj, 
-        len_list, var_adj_R
-    )
+    original_logits_sent, original_logits_act = None, None
+
+    with torch.no_grad():
+        original_logits_sent, original_logits_act = _get_original_logits(
+            model, var_utt, mask, var_adj, 
+            len_list, var_adj_R
+        )
 
     # Define the level of perturbation (See Canva document)
     # Perform the necessary preprocessing (as per flow: See Canva document)
@@ -108,6 +116,9 @@ def perform_vat(model, perturbation_level, utt_list, adj_list, adj_full_list, ad
             _perturbation_lstm_layer(model, var_utt, mask, var_adj, len_list, var_adj_R)
 
     # Get the first KL Div loss (this is on the random tensor)
+    # OPTION: There are two sets of logits: Sentiment and Act
+    # For now, lets focus on act
+    kl_loss = _get_kl_div_loss(original_logits_act, pert_logits_act)
 
     # Update the gradients of the random tensor, based on the KL Div loss
 
