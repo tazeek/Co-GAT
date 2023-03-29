@@ -55,6 +55,25 @@ def build_datasets(data_dir, pretrained_model):
 
     return data_house, piece_vocab
 
+def print_trainable_params(model):
+
+    n_trainable_params, n_nontrainable_params = 0, 0
+
+    for p in model.parameters():
+
+        n_params = torch.prod(torch.tensor(p.shape))
+
+        if p.requires_grad:
+            n_trainable_params += n_params
+
+        else:
+
+            n_nontrainable_params += n_params
+
+    print('> n_trainable_params: {0}, n_nontrainable_params: {1}'.format(n_trainable_params, n_nontrainable_params))
+
+    return None
+
 
 args = get_hyperparams_args()
 print(json.dumps(args.__dict__, indent=True), end="\n\n\n")
@@ -90,16 +109,7 @@ else:
 if not os.path.exists(args.save_dir):
     os.makedirs(args.save_dir)
 
-n_trainable_params, n_nontrainable_params = 0, 0
-
-for p in model.parameters():
-    n_params = torch.prod(torch.tensor(p.shape))
-    if p.requires_grad:
-        n_trainable_params += n_params
-    else:
-        n_nontrainable_params += n_params
-
-print('> n_trainable_params: {0}, n_nontrainable_params: {1}'.format(n_trainable_params, n_nontrainable_params))
+print_trainable_params(model)
 
 dev_best_sent, dev_best_act = 0.0, 0.0
 test_sent_sent, test_sent_act = 0.0, 0.0
