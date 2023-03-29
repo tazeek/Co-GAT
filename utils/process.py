@@ -14,7 +14,7 @@ from utils.help import iterable_support, expand_list
 from transformers import AdamW
 from nn import vat
 
-def _save_confusion_matrix(sent_matrix, act_matrix):
+def _save_confusion_matrix(sent_matrix, act_matrix, cm_name):
 
     # For the emotions/sentiment
     with open('sent_matrix.pickle', 'wb') as handle:
@@ -89,7 +89,7 @@ def vat_training(model, data_iter, max_grad=10.0, bert_lr=1e-5, pretrained_model
     return total_loss, time_con
 
 
-def evaluate(model, data_iter, mastodon_metric):
+def evaluate(model, data_iter, mastodon_metric, cm_name):
 
     model.eval()
 
@@ -132,12 +132,14 @@ def evaluate(model, data_iter, mastodon_metric):
     sent_f1, sent_r, sent_p = reference.validate_emot(pred_sent, gold_sent)
     act_f1, act_r, act_p = reference.validate_act(pred_act, gold_act)
 
-    # Get the confusion matrix
-    act_matrix = confusion_matrix(gold_act, pred_act)
-    sent_matrix = confusion_matrix(gold_sent, pred_sent)
+    if cm_name is not None:
 
-    # Save the confusion matrix
-    _save_confusion_matrix (sent_matrix, act_matrix)
+        # Get the confusion matrix
+        act_matrix = confusion_matrix(gold_act, pred_act)
+        sent_matrix = confusion_matrix(gold_sent, pred_sent)
+
+        # Save the confusion matrix
+        _save_confusion_matrix(sent_matrix, act_matrix, cm_name)
 
     time_con = time.time() - time_start
     return sent_f1, sent_r, sent_p, act_f1, act_r, act_p, time_con

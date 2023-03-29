@@ -106,6 +106,9 @@ fix_random_state(args.random_state)
 labeled_data_house, labeled_piece_vocab = build_datasets(args.data_dir, args.pretrained_model)
 unlabeled_data_house, unlabeled_piece_vocab = None, None
 
+# Get the filenames
+model_name, confusion_matrix_name = get_file_names(args)
+
 if args.vat_applied:
     unlabeled_data_house, unlabeled_piece_vocab = build_datasets(args.semi_sup_dir, args.pretrained_model)
 
@@ -159,11 +162,11 @@ for epoch in range(0, args.num_epoch + 1):
 
     # Validation dataset (Skip it)
     #dev_sent_f1, dev_sent_r, dev_sent_p, dev_act_f1, dev_act_r, dev_act_p, dev_time = evaluate(
-    #    model, labeled_data_house.get_iterator("dev", args.batch_size, False), use_mastodon_metric)
+    #    model, labeled_data_house.get_iterator("dev", args.batch_size, False), use_mastodon_metric, None)
     
     # Testing dataset
     test_sent_f1, sent_r, sent_p, test_act_f1, act_r, act_p, test_time = evaluate(
-        model, labeled_data_house.get_iterator("test", args.batch_size, False), use_mastodon_metric)
+        model, labeled_data_house.get_iterator("test", args.batch_size, False), use_mastodon_metric, confusion_matrix_name)
     
     #print("Development Set")
     #print("=" * 15)
@@ -182,5 +185,5 @@ for epoch in range(0, args.num_epoch + 1):
 total_training_time = time.time() - start_time
 print(f"\n\nTotal training time: {total_training_time:.4f} s.")
 
-torch.save(model, os.path.join(args.save_dir, "model_tazeek_full.pt"))
+torch.save(model, os.path.join(args.save_dir, f"{model_name}.pt"))
 print("", end="\n")
