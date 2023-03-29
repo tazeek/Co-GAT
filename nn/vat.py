@@ -2,7 +2,11 @@ import torch
 
 def _convert_predictions(pred_sent, pred_act, len_list):
 
-    # Convert predictions
+    # Len list: 2D array
+    # Length of inner array: Number of utterances in conversation
+    # Value of inner array: Number of tokens in the respective utterance
+
+    # Trim list: Find the number of turns per conversation
     trim_list = [len(l) for l in len_list]
 
     # Convert the predictions
@@ -26,14 +30,12 @@ def extra_processing():
 
     ...
 
-def get_original_logits(model, var_p, mask, var_adj, len_list, var_adj_R):
+def get_original_logits(model, var_utt, mask, var_adj, len_list, var_adj_R):
+
+    # Raw size
 
     # BiLSTM first
-    bi_ret = model.extract_utterance_features(var_p, mask)
-    print(bi_ret)
-    print("\n\n\n")
-    print(bi_ret.size())
-    exit()
+    bi_ret = model.extract_utterance_features(var_utt, None)
 
     # Speaker layer next
     full_encoded = model.extract_from_speaker_layer(bi_ret, var_adj)
@@ -43,8 +45,9 @@ def get_original_logits(model, var_p, mask, var_adj, len_list, var_adj_R):
 
     # Conversion
     pred_sent, pred_act = _convert_predictions(pred_sent, pred_act, len_list)
+    exit()
 
-    return None
+    return pred_sent, pred_act
 
 def get_kl_div_loss(original_logits, perturbed_logits):
 
@@ -57,12 +60,13 @@ def update_gradients_perturbation():
 def perform_vat(model, perturbation_level, utt_list, adj_list, adj_full_list, adj_id_list):
 
     # Preprocess the data, first and foremost
+
     var_utt, var_p, mask, len_list, _, var_adj, var_adj_full, var_adj_R = \
             model.preprocess_data(utt_list, adj_list, adj_full_list, adj_id_list)
     
     # Get the original logits
     original_logits_sent, original_logits_act = get_original_logits(
-        model, var_p, mask, var_adj, 
+        model, var_utt, mask, var_adj, 
         len_list, var_adj_R
     )
 
