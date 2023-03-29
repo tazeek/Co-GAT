@@ -32,8 +32,31 @@ def _perturbation_lstm_layer(model, var_utt, mask, var_adj, len_list, var_adj_R,
     # Pass to speaker layer
     perturbed_encoded = model.extract_from_speaker_layer(perturbed_bi_ret, var_adj)
 
+    # Extract from decoder layer via GAT
+    sent_h, act_h = model.extract_with_gat(perturbed_encoded, len_list, var_adj_R)
+
     # Decoding
-    pert_pred_sent, pert_pred_act = model(perturbed_encoded, len_list, var_adj_R)
+    pert_pred_sent, pert_pred_act = model(sent_h, act_h)
+
+    # Trim off the fat
+    pert_pred_sent, pert_pred_act = _convert_predictions(pert_pred_sent, pert_pred_act, len_list)
+
+    # Return perturbed logits and the perturbation
+    return noise, pert_pred_sent, pert_pred_act
+
+def _perturbation_output_layer(model, var_utt, mask, var_adj, len_list, var_adj_R, noise = None):
+
+    # Extract the features
+    bi_ret = model.extract_utterance_features(var_utt, None)
+
+    # Pass to speaker layer
+    encoded = model.extract_from_speaker_layer(bi_ret, var_adj)
+
+    # Extract from decoder layer via GAT
+    sent_h, act_h = model.extract_with_gat(encoded, len_list, var_adj_R)
+
+    # Decoding
+    pert_pred_sent, pert_pred_act = model(sent_h, act_h)
 
     # Trim off the fat
     pert_pred_sent, pert_pred_act = _convert_predictions(pert_pred_sent, pert_pred_act, len_list)

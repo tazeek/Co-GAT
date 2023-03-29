@@ -71,6 +71,9 @@ class TaggingAgent(nn.Module):
 
     def preprocess_data(self, utt_list, adj_list, adj_full_list, adj_id_list):
         return self._wrap_padding(utt_list, adj_list, adj_full_list, adj_id_list, True)
+    
+    def decode_with_gat(self, input_h, len_list, adj_re):
+        return self._decoder.extract_with_gat(input_h, len_list, adj_re)
 
     def extract_utterance_features(self, input_w, mask=None):
         return self._encoder.extract_utterances(input_w, mask)
@@ -78,8 +81,8 @@ class TaggingAgent(nn.Module):
     def extract_from_speaker_layer(self, bi_ret, adj):
         return self._encoder(bi_ret, adj)
 
-    def forward(self, full_encoded, len_list, adj_re):
-        return self._decoder(full_encoded, len_list, adj_re)
+    def forward(self, sent_h, act_h):
+        return self._decoder(sent_h, act_h)
 
     @property
     def sent_vocab(self):
@@ -282,7 +285,8 @@ class TaggingAgent(nn.Module):
             bi_ret = self.extract_utterance_features(var_utt, None)
 
         full_encoded = self.extract_from_speaker_layer(bi_ret, var_adj)
-        pred_sent, pred_act = self.forward(full_encoded, len_list, var_adj_R)
+        sent_h, act_h = self.decode_with_gat(full_encoded, len_list, var_adj_R)
+        pred_sent, pred_act = self.forward(sent_h, act_h)
 
         # Get the labels
         trim_list = [len(l) for l in len_list]
@@ -357,7 +361,8 @@ class TaggingAgent(nn.Module):
             bi_ret = self.extract_utterance_features(var_utt, None)
 
         full_encoded = self.extract_from_speaker_layer(bi_ret, var_adj)
-        pred_sent, pred_act = self.forward(full_encoded, len_list, var_adj_R)
+        sent_h, act_h = self.decode_with_gat(full_encoded, len_list, var_adj_R)
+        pred_sent, pred_act = self.forward(sent_h, act_h)
        
         trim_list = [len(l) for l in len_list]
 
