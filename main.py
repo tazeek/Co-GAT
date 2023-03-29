@@ -71,7 +71,7 @@ def print_trainable_params(model):
 
             n_nontrainable_params += n_params
 
-    print('> n_trainable_params: {0}, n_nontrainable_params: {1}'.format(n_trainable_params, n_nontrainable_params))
+    print(f'Trainable Params:{n_trainable_params}\nNon-trainable Params: {n_nontrainable_params}\n\n')
 
     return None
 
