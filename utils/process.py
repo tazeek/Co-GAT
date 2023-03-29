@@ -59,6 +59,7 @@ def training(model, data_iter, max_grad=10.0, bert_lr=1e-5, pretrained_model="no
 def vat_training(model, data_iter, max_grad=10.0, bert_lr=1e-5, pretrained_model="none"):
 
     model.train()
+    perturbation_level = 'bilstm_layer'
 
     # using pretrain model need to change optimizer (Adam -> AdamW).
     if pretrained_model != "none":
@@ -71,15 +72,7 @@ def vat_training(model, data_iter, max_grad=10.0, bert_lr=1e-5, pretrained_model
 
     for utt_list, _, _, adj_list, adj_full_list, adj_id_list in tqdm(data_iter, ncols=50):
 
-        print(utt_list)
-        print("\n\n")
-        print(adj_list)
-        print("\n\n")
-        print(adj_full_list)
-        print("\n\n")
-        print(adj_id_list)
-        exit()
-        vat_loss = vat.perform_vat(model, utt_list, adj_list, adj_full_list, adj_id_list)
+        vat_loss = vat.perform_vat(model, perturbation_level, utt_list, adj_list, adj_full_list, adj_id_list)
 
         total_loss += vat_loss.cpu().item()
 
