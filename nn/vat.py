@@ -87,14 +87,24 @@ def _get_kl_div_loss(original_logits, perturbed_logits):
 
     return kl_div_loss
 
-def update_gradients_perturbation():
+def _update_gradients_perturbation(perturbation, kl_div_loss):
 
+    # Get the updated gradients
+
+    # Detach from graph
+
+    # Normalize and multiply with epsilon
+
+    # Return
+    
     ...
 
 def perform_vat(model, perturbation_level, utt_list, adj_list, adj_full_list, adj_id_list):
 
-    # Preprocess the data, first and foremost
+    eps = 1.0
+    num_iter = 1
 
+    # Preprocess the data, first and foremost
     var_utt, var_p, mask, len_list, _, var_adj, var_adj_full, var_adj_R = \
             model.preprocess_data(utt_list, adj_list, adj_full_list, adj_id_list)
     
