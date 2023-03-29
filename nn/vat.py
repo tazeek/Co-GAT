@@ -2,6 +2,10 @@ def create_random_tensor():
 
     ...
 
+def extra_processing():
+
+    ...
+
 def get_original_logits():
 
     ...
