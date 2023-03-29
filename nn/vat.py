@@ -35,7 +35,7 @@ def _perturbation_lstm_layer(model, var_utt, mask, var_adj, len_list, var_adj_R)
     pert_pred_sent, pert_pred_act = _convert_predictions(pert_pred_sent, pert_pred_act, len_list)
 
     # Return perturbed logits and the perturbation
-    return random_tensor, pert_pred_sent, pert_pred_act
+    return perturbed_bi_ret, pert_pred_sent, pert_pred_act
 
 def _convert_predictions(pred_sent, pred_act, len_list):
 
@@ -93,14 +93,19 @@ def _update_gradients_perturbation(perturbation, kl_div_loss):
 
     # Get the updated gradients
     grad, = torch.autograd.grad(kl_div_loss, perturbation)
+    print("\n\n")
+    print(grad)
+    print("\n\n")
 
     # Detach from graph
     perturbed = grad.detach()
+    print("\n\n")
+    print(perturbed)
+    print("\n\n")
 
     # L2 Normalize and multiply with epsilon
     perturbed = eps * F.normalize(perturbed, p=2, dim=-1)
 
-    # Return
     return perturbed
 
 def perform_vat(model, perturbation_level, utt_list, adj_list, adj_full_list, adj_id_list):
@@ -122,10 +127,10 @@ def perform_vat(model, perturbation_level, utt_list, adj_list, adj_full_list, ad
 
     # Define the level of perturbation (See Canva document)
     # Perform the necessary preprocessing (as per flow: See Canva document)
-    random_noise, pert_logits_sent, pert_logits_act = None, None, None
+    perturbation_raw, pert_logits_sent, pert_logits_act = None, None, None
 
     if perturbation_level == "bilstm_layer":
-        random_noise, pert_logits_sent, pert_logits_act = \
+        perturbation_raw, pert_logits_sent, pert_logits_act = \
             _perturbation_lstm_layer(model, var_utt, mask, var_adj, len_list, var_adj_R)
 
     # Get the first KL Div loss (this is on the random tensor)
@@ -134,6 +139,7 @@ def perform_vat(model, perturbation_level, utt_list, adj_list, adj_full_list, ad
     kl_loss = _get_kl_div_loss(original_logits_act, pert_logits_act)
 
     # Update the gradients of the random tensor, based on the KL Div loss
+    perturbation_updated = _update_gradients_perturbation(perturbation_raw, kl_loss)
 
     # Run again with the adjusted perturbation
 
