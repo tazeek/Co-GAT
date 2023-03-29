@@ -33,7 +33,7 @@ def _perturbation_lstm_layer(model, var_utt, mask, var_adj, len_list, var_adj_R,
     perturbed_encoded = model.extract_from_speaker_layer(perturbed_bi_ret, var_adj)
 
     # Extract from decoder layer via GAT
-    sent_h, act_h = model.extract_with_gat(perturbed_encoded, len_list, var_adj_R)
+    sent_h, act_h = model.decode_with_gat(perturbed_encoded, len_list, var_adj_R)
 
     # Decoding
     pert_pred_sent, pert_pred_act = model(sent_h, act_h)
@@ -44,7 +44,7 @@ def _perturbation_lstm_layer(model, var_utt, mask, var_adj, len_list, var_adj_R,
     # Return perturbed logits and the perturbation
     return noise, pert_pred_sent, pert_pred_act
 
-def _perturbation_output_layer(model, var_utt, mask, var_adj, len_list, var_adj_R, noise = None):
+def _perturbation_output_layer(model, var_utt, mask, var_adj, len_list, var_adj_R, emo_noise=None, act_noise=None):
 
     # Extract the features
     bi_ret = model.extract_utterance_features(var_utt, None)
@@ -53,16 +53,23 @@ def _perturbation_output_layer(model, var_utt, mask, var_adj, len_list, var_adj_
     encoded = model.extract_from_speaker_layer(bi_ret, var_adj)
 
     # Extract from decoder layer via GAT
-    sent_h, act_h = model.extract_with_gat(encoded, len_list, var_adj_R)
+    sent_h, act_h = model.decode_with_gat(encoded, len_list, var_adj_R)
 
-    # Decoding
-    pert_pred_sent, pert_pred_act = model(sent_h, act_h)
+    # Add noise to emotion and act
+    if emo_noise is None:
+        emo_noise = _create_random_tensor(sent_h)
+
+    if act_noise is None:
+        act_noise = _create_random_tensor(act_h)
+
+    # Linear Layer
+    pert_pred_sent, pert_pred_act = model(sent_h + emo_noise, act_h + act_noise)
 
     # Trim off the fat
     pert_pred_sent, pert_pred_act = _convert_predictions(pert_pred_sent, pert_pred_act, len_list)
 
     # Return perturbed logits and the perturbation
-    return noise, pert_pred_sent, pert_pred_act
+    return emo_noise, act_noise, pert_pred_sent, pert_pred_act
 
 def _convert_predictions(pred_sent, pred_act, len_list):
 
@@ -97,8 +104,11 @@ def _get_original_logits(model, var_utt, mask, var_adj, len_list, var_adj_R):
     # Speaker layer next
     full_encoded = model.extract_from_speaker_layer(bi_ret, var_adj)
 
-    # The decoding next
-    pred_sent, pred_act = model(full_encoded, len_list, var_adj_R)
+    # Extract from decoder layer via GAT
+    sent_h, act_h = model.decode_with_gat(full_encoded, len_list, var_adj_R)
+
+    # Linear Layer
+    pred_sent, pred_act = model(sent_h, act_h)
 
     # Conversion by trimming off the fat off the logits
     pred_sent, pred_act = _convert_predictions(pred_sent, pred_act, len_list)
@@ -148,9 +158,13 @@ def perform_vat(model, perturbation_level, utt_list, adj_list, adj_full_list, ad
     # Perform the necessary preprocessing (as per flow: See Canva document)
     perturbation_raw, pert_logits_sent, pert_logits_act = None, None, None
 
-    if perturbation_level == "bilstm_layer":
-        perturbation_raw, pert_logits_sent, pert_logits_act = \
-            _perturbation_lstm_layer(model, var_utt, mask, var_adj, len_list, var_adj_R, None)
+    #if perturbation_level == "bilstm_layer":
+    #    perturbation_raw, pert_logits_sent, pert_logits_act = \
+    #        _perturbation_lstm_layer(model, var_utt, mask, var_adj, len_list, var_adj_R, None)
+
+    #
+    perturb_sent, perturb_act, pert_logits_sent, pert_logits_act = \
+        _perturbation_output_layer(model, var_utt, mask, var_adj, len_list, var_adj_R, None)
 
     # There are two sets of logits: Sentiment and Act
     # Permutations: Act loss, Emo loss, Dual loss (divide by 2)
@@ -158,12 +172,13 @@ def perform_vat(model, perturbation_level, utt_list, adj_list, adj_full_list, ad
     emo_kl_loss = _get_kl_div_loss(original_logits_sent, pert_logits_sent)
 
     # Update the gradients of the random tensor, based on the KL Div loss
-    kl_loss = (act_kl_loss + emo_kl_loss) / 2
-    perturbation_updated = _update_gradients_perturbation(perturbation_raw, kl_loss)
+    # One for Sent, One for Act
+    perturb_act = _update_gradients_perturbation(perturb_act, act_kl_loss)
+    perturb_sent = _update_gradients_perturbation(perturb_sent, emo_kl_loss)
 
     # Run again with the adjusted perturbation
-    _, pert_logits_sent, pert_logits_act = \
-            _perturbation_lstm_layer(model, var_utt, mask, var_adj, len_list, var_adj_R, perturbation_updated)
+    _, _, pert_logits_sent, pert_logits_act = \
+            _perturbation_lstm_layer(model, var_utt, mask, var_adj, len_list, var_adj_R, perturb_sent, perturb_act)
 
     # Get the second KL Div loss (this is based on the updated perturbation)
     act_kl_loss = _get_kl_div_loss(original_logits_act, pert_logits_act)

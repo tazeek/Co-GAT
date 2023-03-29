@@ -168,6 +168,7 @@ for epoch in range(0, args.num_epoch + 1):
                                           10.0, args.bert_learning_rate, args.pretrained_model)
         
         print(f"\n[Epoch {epoch} - VAT] VAT loss is {vat_loss:.4f}, cost {vat_time:.4f} s.\n")
+        loss_storage['vat_loss'].append(vat_loss)
 
     # Validation dataset (Skip it)
     #dev_sent_f1, dev_sent_r, dev_sent_p, dev_act_f1, dev_act_r, dev_act_p, dev_time = evaluate(
@@ -175,7 +176,6 @@ for epoch in range(0, args.num_epoch + 1):
     
     loss_storage['epoch'].append(epoch + 1)
     loss_storage['train_loss'].append(train_loss)
-    loss_storage['vat_loss'].append(vat_loss)
 
     # Testing dataset
     test_sent_f1, sent_r, sent_p, test_act_f1, act_r, act_p, test_time = evaluate(
