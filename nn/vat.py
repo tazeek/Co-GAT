@@ -1,5 +1,23 @@
 import torch
 
+def _perturbation_lstm_layer(model, var_utt, mask, var_adj, len_list, var_adj_R):
+
+    # Extract the features
+
+    # Create random tensor
+
+    # Add the noise
+
+    # Pass to speaker layer
+
+    # Decoding
+
+    # Trim off the fat
+
+    # Return perturbed logits
+    
+    ...
+
 def _convert_predictions(pred_sent, pred_act, len_list):
 
     # Len list: 2D array
@@ -29,13 +47,7 @@ def create_random_tensor():
 
     ...
 
-def extra_processing():
-
-    ...
-
 def get_original_logits(model, var_utt, mask, var_adj, len_list, var_adj_R):
-
-    # Raw size
 
     # BiLSTM first
     bi_ret = model.extract_utterance_features(var_utt, None)
@@ -48,7 +60,6 @@ def get_original_logits(model, var_utt, mask, var_adj, len_list, var_adj_R):
 
     # Conversion by trimming off the fat off the logits
     pred_sent, pred_act = _convert_predictions(pred_sent, pred_act, len_list)
-    exit()
 
     return pred_sent, pred_act
 
