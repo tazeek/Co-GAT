@@ -89,19 +89,22 @@ def _get_kl_div_loss(original_logits, perturbed_logits):
 
 def _update_gradients_perturbation(perturbation, kl_div_loss):
 
+    eps = 1.0
+
     # Get the updated gradients
+    grad, = torch.autograd.grad(kl_div_loss, perturbation)
 
     # Detach from graph
+    perturbed = grad.detach()
 
-    # Normalize and multiply with epsilon
+    # L2 Normalize and multiply with epsilon
+    perturbed = eps * F.normalize(perturbed, p=2, dim=-1)
 
     # Return
-    
-    ...
+    return perturbed
 
 def perform_vat(model, perturbation_level, utt_list, adj_list, adj_full_list, adj_id_list):
 
-    eps = 1.0
     num_iter = 1
 
     # Preprocess the data, first and foremost
