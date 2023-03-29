@@ -18,7 +18,7 @@ def update_gradients_perturbation():
 
     ...
 
-def perform_vat():
+def perform_vat(utt_list, adj_list, adj_full_list, adj_id_list):
 
     # Preprocess the data, first and foremost
 

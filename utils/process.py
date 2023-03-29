@@ -12,6 +12,7 @@ from utils.help import NormalMetric, ReferMetric
 from utils.help import iterable_support, expand_list
 
 from transformers import AdamW
+from nn import vat
 
 def _save_confusion_matrix(sent_matrix, act_matrix):
 
@@ -68,9 +69,9 @@ def vat_training(model, data_iter, max_grad=10.0, bert_lr=1e-5, pretrained_model
 
     time_start, total_loss = time.time(), 0.0
 
-    for data_batch in tqdm(data_iter, ncols=50):
+    for utt_list, _, _, adj_list, adj_full_list, adj_id_list in tqdm(data_iter, ncols=50):
 
-        vat_loss = ...
+        vat_loss = vat.perform_vat(utt_list, adj_list, adj_full_list, adj_id_list)
 
         total_loss += vat_loss.cpu().item()
 
