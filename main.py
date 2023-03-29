@@ -175,8 +175,8 @@ for epoch in range(0, args.num_epoch + 1):
 
     print("Test Set")
     print("=" * 15)
-    print(f"Sentiment:\n\nF1: {test_sent_f1}\nRecall: {sent_r}\nPrecision: {sent_p}\n\n")
-    print(f"Dialog Actn:\n\nF1: {test_act_f1}\nRecall: {act_r}\nPrecision: {act_p}\n\n")
+    print(f"Emotion Recognition:\n\nF1: {test_sent_f1}\nRecall: {sent_r}\nPrecision: {sent_p}\n\n")
+    print(f"Dialog Act Recognition:\n\nF1: {test_act_f1}\nRecall: {act_r}\nPrecision: {act_p}\n\n")
 
     #print("On dev, sentiment f1: {:.4f}, act f1: {:.4f}".format(dev_sent_f1, dev_act_f1))
     #print("On test, sentiment f1: {:.4f}, act f1 {:.4f}".format(test_sent_f1, test_act_f1))
