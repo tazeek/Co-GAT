@@ -12,6 +12,14 @@ from utils import training, evaluate
 from utils.process import vat_training
 from utils.dict import PieceAlphabet
 
+def get_file_names(args):
+
+    model_file_name = 'model_cogat'
+    cm_file_name = 'cm_cogat'
+
+    return model_file_name, cm_file_name
+    ...
+
 def get_hyperparams_args():
 
     parser = argparse.ArgumentParser()
@@ -135,7 +143,7 @@ for epoch in range(0, args.num_epoch + 1):
         vat_loss, vat_time = vat_training(model, labeled_data_house.get_iterator("dev", args.batch_size, True),
                                           10.0, args.bert_learning_rate, args.pretrained_model)
         
-        print(f"\n[Epoch {epoch} - VAT], VAT loss is {vat_loss}, cost {vat_time} s.\n".format(epoch, vat_loss, vat_time))
+        print(f"\n[Epoch {epoch} - VAT], VAT loss is {vat_loss:.4f}, cost {vat_time:.4f} s.\n")
 
     # Validation dataset (Skip it)
     #dev_sent_f1, dev_sent_r, dev_sent_p, dev_act_f1, dev_act_r, dev_act_p, dev_time = evaluate(
@@ -154,8 +162,6 @@ for epoch in range(0, args.num_epoch + 1):
     print("=" * 15)
     print(f"Sentiment:\nF1: {test_sent_f1}\nRecall: {sent_r}\nPrecision: {sent_p}\n\n")
     print(f"Dialog Act:\nF1: {test_act_f1}\nRecall: {act_r}\nPrecision: {act_p}\n\n")
-
-    exit()
 
     #print("On dev, sentiment f1: {:.4f}, act f1: {:.4f}".format(dev_sent_f1, dev_act_f1))
     #print("On test, sentiment f1: {:.4f}, act f1 {:.4f}".format(test_sent_f1, test_act_f1))
