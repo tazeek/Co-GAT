@@ -10,6 +10,9 @@ def _convert_predictions(pred_sent, pred_act, len_list):
     trim_list = [len(l) for l in len_list]
 
     # Convert the predictions
+    # BEFORE TRIMMING: The excess "fat" are the turns not utilized (for padding sake)
+    # AFTER TRIMMING: The values that are actually required for classification
+
     flat_pred_s = torch.cat(
         [pred_sent[i, :trim_list[i], :] for
             i in range(0, len(trim_list))], dim=0
@@ -43,7 +46,7 @@ def get_original_logits(model, var_utt, mask, var_adj, len_list, var_adj_R):
     # The decoding next
     pred_sent, pred_act = model(full_encoded, len_list, var_adj_R)
 
-    # Conversion
+    # Conversion by trimming off the fat off the logits
     pred_sent, pred_act = _convert_predictions(pred_sent, pred_act, len_list)
     exit()
 
