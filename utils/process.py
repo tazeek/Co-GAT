@@ -17,11 +17,12 @@ from nn import vat
 def _save_confusion_matrix(sent_matrix, act_matrix, cm_name):
 
     # For the emotions/sentiment
-    with open('sent_matrix.pickle', 'wb') as handle:
+
+    with open(cm_name + 'sent_matrix.pickle', 'wb') as handle:
         pickle.dump(sent_matrix, handle, protocol=pickle.HIGHEST_PROTOCOL)
 
     # For the dialog act
-    with open('act_matrix.pickle', 'wb') as handle:
+    with open(cm_name + 'act_matrix.pickle', 'wb') as handle:
         pickle.dump(act_matrix, handle, protocol=pickle.HIGHEST_PROTOCOL)
 
     return None
