@@ -191,34 +191,44 @@ class TaggingAgent(nn.Module):
 
         assert len(pad_adj_id_list[0]) * 2 == len(pad_adj_R_list[0]), pad_adj_R_list[0]
 
+        # For adjusting the dialog length
+        # and for token conversion (Not Pretrained model)
         pad_w_list, pad_sign = [], self._word_vocab.PAD_SIGN
-        
+
         for dial_i in range(0, len(dial_list)):
+
             pad_w_list.append([])
 
             for turn in dial_list[dial_i]:
+
                 if use_noise:
                     noise_turn = noise_augment(self._word_vocab, turn, 5.0)
                 else:
                     noise_turn = turn
+
                 pad_utt = noise_turn + [pad_sign] * (max_turn_len - len(turn))
                 pad_w_list[-1].append(iterable_support(self._word_vocab.index, pad_utt))
 
             if len(dial_list[dial_i]) < max_dial_len:
+
                 pad_dial = [[pad_sign] * max_turn_len] * (max_dial_len - len(dial_list[dial_i]))
                 pad_w_list[-1].extend(iterable_support(self._word_vocab.index, pad_dial))
 
+        # For tokenization (Pre-trained models)
         cls_sign = self._piece_vocab.CLS_SIGN
         piece_list, sep_sign = [], self._piece_vocab.SEP_SIGN
 
         for dial_i in range(0, len(dial_list)):
+
             piece_list.append([])
 
             for turn in dial_list[dial_i]:
+
                 seg_list = self._piece_vocab.tokenize(turn)
                 piece_list[-1].append([cls_sign] + seg_list + [sep_sign])
 
             if len(dial_list[dial_i]) < max_dial_len:
+
                 pad_dial = [[cls_sign, sep_sign]] * (max_dial_len - len(dial_list[dial_i]))
                 piece_list[-1].extend(pad_dial)
 
@@ -236,7 +246,7 @@ class TaggingAgent(nn.Module):
                 pad_p_list[-1].append(self._piece_vocab.index(pad_t))
                 mask[-1].append([1] * len(turn) + [0] * (max_p_len - len(turn)))
 
-        # Count to Tensors and mount onto Cuda
+        # Convert to Tensors and mount onto Cuda
         var_w_dial = torch.LongTensor(pad_w_list)
         var_p_dial = torch.LongTensor(pad_p_list)
         var_mask = torch.LongTensor(mask)
