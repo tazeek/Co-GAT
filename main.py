@@ -150,7 +150,7 @@ for epoch in range(0, args.num_epoch + 1):
                                       10.0, args.bert_learning_rate, args.pretrained_model)
     
     # Training dataset update
-    print(f"\n[Epoch {epoch} - Training], train loss is {train_loss:.4f}, cost {train_time:.4f} s.\n")
+    print(f"\n[Epoch {epoch} - Training] Train loss is {train_loss:.4f}, cost {train_time:.4f} s.\n")
 
     # Perform VAT
     if args.vat_applied:
@@ -158,7 +158,7 @@ for epoch in range(0, args.num_epoch + 1):
         vat_loss, vat_time = vat_training(model, labeled_data_house.get_iterator("dev", args.batch_size, True),
                                           10.0, args.bert_learning_rate, args.pretrained_model)
         
-        print(f"\n[Epoch {epoch} - VAT], VAT loss is {vat_loss:.4f}, cost {vat_time:.4f} s.\n")
+        print(f"\n[Epoch {epoch} - VAT] VAT loss is {vat_loss:.4f}, cost {vat_time:.4f} s.\n")
 
     # Validation dataset (Skip it)
     #dev_sent_f1, dev_sent_r, dev_sent_p, dev_act_f1, dev_act_r, dev_act_p, dev_time = evaluate(
