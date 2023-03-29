@@ -4,6 +4,7 @@ import json
 import torch
 import argparse
 import time
+import pickle
 
 from utils import DataHub
 from nn import TaggingAgent
@@ -16,20 +17,22 @@ def get_file_names(args):
 
     model_file_name = 'model_cogat'
     cm_file_name = 'cm_cogat'
+    loss_storage_name = 'loss_tracker'
 
     # Dataset is the first
     dataset = args.data_dir.split('/')[-1]
 
     model_file_name += '_' + dataset
     cm_file_name += '_' + dataset
+    loss_storage_name += '_' + dataset
 
     # Followed by VAT
     if args.vat_applied is True:
         model_file_name += '_' + 'vat_' + args.perturbation
         cm_file_name += '_' + 'vat_' + args.perturbation
-        ...
+        loss_storage_name += '_' + 'vat_' + args.perturbation
 
-    return model_file_name, cm_file_name
+    return model_file_name, cm_file_name, loss_storage_name
 
 def get_hyperparams_args():
 
@@ -107,7 +110,7 @@ labeled_data_house, labeled_piece_vocab = build_datasets(args.data_dir, args.pre
 unlabeled_data_house, unlabeled_piece_vocab = None, None
 
 # Get the filenames
-model_name, confusion_matrix_name = get_file_names(args)
+model_name, confusion_matrix_name, loss_storage_name = get_file_names(args)
 
 if args.vat_applied:
     unlabeled_data_house, unlabeled_piece_vocab = build_datasets(args.semi_sup_dir, args.pretrained_model)
@@ -141,6 +144,12 @@ test_act_sent, test_act_act = 0.0, 0.0
 
 start_time = time.time()
 
+loss_storage = {
+    'epoch': [],
+    'train_loss': [],
+    'vat_loss': []
+}
+
 for epoch in range(0, args.num_epoch + 1):
 
     print(f"Training Epoch: {epoch} \n\n")
@@ -164,6 +173,10 @@ for epoch in range(0, args.num_epoch + 1):
     #dev_sent_f1, dev_sent_r, dev_sent_p, dev_act_f1, dev_act_r, dev_act_p, dev_time = evaluate(
     #    model, labeled_data_house.get_iterator("dev", args.batch_size, False), use_mastodon_metric, None)
     
+    loss_storage['epoch'].append(epoch + 1)
+    loss_storage['train_loss'].append(train_loss)
+    loss_storage['vat_loss'].append(vat_loss)
+
     # Testing dataset
     test_sent_f1, sent_r, sent_p, test_act_f1, act_r, act_p, test_time = evaluate(
         model, labeled_data_house.get_iterator("test", args.batch_size, False), use_mastodon_metric, confusion_matrix_name)
@@ -187,3 +200,7 @@ print(f"\n\nTotal training time: {total_training_time:.4f} s.")
 
 torch.save(model, os.path.join(args.save_dir, f"{model_name}.pt"))
 print("", end="\n")
+
+# Save the storage parameters
+with open(f'{loss_storage_name}.pickle', 'wb') as handle:
+        pickle.dump(loss_storage, handle, protocol=pickle.HIGHEST_PROTOCOL)

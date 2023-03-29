@@ -129,13 +129,13 @@ def perform_vat(model, perturbation_level, utt_list, adj_list, adj_full_list, ad
         perturbation_raw, pert_logits_sent, pert_logits_act = \
             _perturbation_lstm_layer(model, var_utt, mask, var_adj, len_list, var_adj_R, None)
 
-    # Get the first KL Div loss (this is on the random tensor)
-    # OPTION: There are two sets of logits: Sentiment and Act
-    # For now, lets focus on act
-    #kl_loss = _get_kl_div_loss(original_logits_act, pert_logits_act)
-    kl_loss = _get_kl_div_loss(original_logits_sent, pert_logits_sent)
+    # There are two sets of logits: Sentiment and Act
+    # Permutations: Act loss, Emo loss, Dual loss (divide by 2)
+    act_kl_loss = _get_kl_div_loss(original_logits_act, pert_logits_act)
+    emo_kl_loss = _get_kl_div_loss(original_logits_sent, pert_logits_sent)
 
     # Update the gradients of the random tensor, based on the KL Div loss
+    kl_loss = (act_kl_loss + emo_kl_loss) / 2
     perturbation_updated = _update_gradients_perturbation(perturbation_raw, kl_loss)
 
     # Run again with the adjusted perturbation
@@ -143,7 +143,9 @@ def perform_vat(model, perturbation_level, utt_list, adj_list, adj_full_list, ad
             _perturbation_lstm_layer(model, var_utt, mask, var_adj, len_list, var_adj_R, perturbation_updated)
 
     # Get the second KL Div loss (this is based on the updated perturbation)
-    new_kl_loss = _get_kl_div_loss(original_logits_act, pert_logits_act)
+    act_kl_loss = _get_kl_div_loss(original_logits_act, pert_logits_act)
+    emo_kl_loss = _get_kl_div_loss(original_logits_sent, pert_logits_sent)
 
     # Return the loss (This is the VAT loss)
+    new_kl_loss = (act_kl_loss + emo_kl_loss) / 2
     return new_kl_loss
