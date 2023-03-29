@@ -6,9 +6,18 @@ def extra_processing():
 
     ...
 
-def get_original_logits():
+def get_original_logits(model, var_p, mask, var_adj, len_list, var_adj_R):
 
-    ...
+    # BiLSTM first
+    bi_ret = model.extract_utterance_features(var_p, mask)
+
+    # Speaker layer next
+    full_encoded = model.extract_from_speaker_layer(bi_ret, var_adj)
+
+    # The decoding next
+    pred_sent, pred_act = model(full_encoded, len_list, var_adj_R)
+
+    return None
 
 def get_kl_div_loss(original_logits, perturbed_logits):
 
@@ -25,15 +34,6 @@ def perform_vat(model, perturbation_level, utt_list, adj_list, adj_full_list, ad
             model.preprocess_data(utt_list, adj_list, adj_full_list, adj_id_list)
     
     # Get the original logits
-    print(var_utt)
-    print("\n\n")
-    print(var_p)
-    print("\n\n")
-    print(mask)
-    print("\n\n")
-    print(len_list)
-    print("\n\n")
-    exit()
 
     # Define the level of perturbation (See Canva document)
     # Perform the necessary preprocessing (as per flow: See Canva document)
