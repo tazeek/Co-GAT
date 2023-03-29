@@ -10,7 +10,7 @@ def get_original_logits():
 
     ...
 
-def get_kl_div_loss():
+def get_kl_div_loss(original_logits, perturbed_logits):
 
     ...
 
@@ -25,6 +25,15 @@ def perform_vat(model, perturbation_level, utt_list, adj_list, adj_full_list, ad
             model.preprocess_data(utt_list, adj_list, adj_full_list, adj_id_list)
     
     # Get the original logits
+    print(var_utt)
+    print("\n\n")
+    print(var_p)
+    print("\n\n")
+    print(mask)
+    print("\n\n")
+    print(len_list)
+    print("\n\n")
+    exit()
 
     # Define the level of perturbation (See Canva document)
     # Perform the necessary preprocessing (as per flow: See Canva document)
