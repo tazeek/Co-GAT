@@ -7,6 +7,7 @@ def _create_random_tensor(input, xi=1e-6):
 
     # L2 Normalization
     random_noise = xi * F.normalize(random_noise, p=2, dim=-1)
+    random_noise.requires_grad_()
 
     # Mount to CUDA
     if torch.cuda.is_available():
@@ -38,7 +39,7 @@ def _perturbation_lstm_layer(model, var_utt, mask, var_adj, len_list, var_adj_R,
     pert_pred_sent, pert_pred_act = _convert_predictions(pert_pred_sent, pert_pred_act, len_list)
 
     # Return perturbed logits and the perturbation
-    return perturbed_bi_ret, pert_pred_sent, pert_pred_act
+    return noise, pert_pred_sent, pert_pred_act
 
 def _convert_predictions(pred_sent, pred_act, len_list):
 
@@ -96,15 +97,9 @@ def _update_gradients_perturbation(perturbation, kl_div_loss):
 
     # Get the updated gradients
     grad, = torch.autograd.grad(kl_div_loss, perturbation)
-    print("\n\n")
-    print(grad)
-    print("\n\n")
 
     # Detach from graph
     perturbed = grad.detach()
-    print("\n\n")
-    print(perturbed)
-    print("\n\n")
 
     # L2 Normalize and multiply with epsilon
     perturbed = eps * F.normalize(perturbed, p=2, dim=-1)
@@ -112,8 +107,6 @@ def _update_gradients_perturbation(perturbation, kl_div_loss):
     return perturbed
 
 def perform_vat(model, perturbation_level, utt_list, adj_list, adj_full_list, adj_id_list):
-
-    num_iter = 1
 
     # Preprocess the data, first and foremost
     var_utt, var_p, mask, len_list, _, var_adj, var_adj_full, var_adj_R = \
@@ -134,7 +127,7 @@ def perform_vat(model, perturbation_level, utt_list, adj_list, adj_full_list, ad
 
     if perturbation_level == "bilstm_layer":
         perturbation_raw, pert_logits_sent, pert_logits_act = \
-            _perturbation_lstm_layer(model, var_utt, mask, var_adj, len_list, var_adj_R)
+            _perturbation_lstm_layer(model, var_utt, mask, var_adj, len_list, var_adj_R, None)
 
     # Get the first KL Div loss (this is on the random tensor)
     # OPTION: There are two sets of logits: Sentiment and Act
@@ -145,9 +138,18 @@ def perform_vat(model, perturbation_level, utt_list, adj_list, adj_full_list, ad
     perturbation_updated = _update_gradients_perturbation(perturbation_raw, kl_loss)
 
     # Run again with the adjusted perturbation
+    _, pert_logits_sent, pert_logits_act = \
+            _perturbation_lstm_layer(model, var_utt, mask, var_adj, len_list, var_adj_R, perturbation_updated)
 
     # Get the second KL Div loss (this is based on the updated perturbation)
+    new_kl_loss = _get_kl_div_loss(original_logits_act, pert_logits_act)
+
+    print("\n\nBEFORE\n\n")
+    print(f"KL LOSS: {kl_loss}")
+
+    print("\n\nAFTER\n\n")
+    print(f"KL LOSS: {new_kl_loss}")
+    exit()
 
     # Return the loss (This is the VAT loss)
-
-    ...
+    return new_kl_loss
