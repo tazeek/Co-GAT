@@ -2,6 +2,11 @@ import torch
 
 def _create_random_tensor(input):
 
+    random_noise = torch.rand_like(input)
+
+    # L2 Normalization
+
+    return random_noise
     ...
 
 def _perturbation_lstm_layer(model, var_utt, mask, var_adj, len_list, var_adj_R):
@@ -9,7 +14,7 @@ def _perturbation_lstm_layer(model, var_utt, mask, var_adj, len_list, var_adj_R)
     # Extract the features
     bi_ret = model.extract_utterance_features(var_utt, None)
 
-    # Create random tensor
+    # Create random tensor and 
     random_tensor = _create_random_tensor()
 
     # Add the noise
@@ -90,8 +95,6 @@ def perform_vat(model, perturbation_level, utt_list, adj_list, adj_full_list, ad
     # Perform the necessary preprocessing (as per flow: See Canva document)
     if perturbation_level == "bilstm_layer":
         _perturbation_lstm_layer(model, var_utt, mask, var_adj, len_list, var_adj_R)
-
-    # Create random tensor and normalize with L2
 
     # Get the first KL Div loss (this is on the random tensor)
 
