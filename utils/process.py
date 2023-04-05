@@ -18,11 +18,11 @@ def _save_confusion_matrix(sent_matrix, act_matrix, cm_name):
 
     # For the emotions/sentiment
 
-    with open(cm_name + 'sent_matrix.pickle', 'wb') as handle:
+    with open(cm_name + '_sent_matrix.pickle', 'wb') as handle:
         pickle.dump(sent_matrix, handle, protocol=pickle.HIGHEST_PROTOCOL)
 
     # For the dialog act
-    with open(cm_name + 'act_matrix.pickle', 'wb') as handle:
+    with open(cm_name + '_act_matrix.pickle', 'wb') as handle:
         pickle.dump(act_matrix, handle, protocol=pickle.HIGHEST_PROTOCOL)
 
     return None
@@ -80,6 +80,58 @@ def vat_training(model, data_iter, max_grad=10.0, bert_lr=1e-5, pretrained_model
         optimizer.zero_grad()
         vat_loss.backward()
 
+        optimizer.step()
+
+    time_con = time.time() - time_start
+    return total_loss, time_con
+
+def semi_supervised_training(model, labeled_data_iter, unlabeled_data_iter, max_grad=10.0, bert_lr=1e-5, pretrained_model="none"):
+
+    model.train()
+    perturbation_level = 'speaker_layer'
+
+    # using pretrain model need to change optimizer (Adam -> AdamW).
+    if pretrained_model != "none":
+        optimizer = AdamW(model.parameters(), lr=bert_lr, correct_bias=False)
+    else:
+        optimizer = Adam(model.parameters(), weight_decay=1e-8)
+    
+    utt_list, _, _, adj_list, adj_full_list, adj_id_list = None, None, None, None, None, None
+
+    time_start, total_loss_ce, total_loss_vat = time.time(), 0.0, 0.0
+
+    for data_batch in tqdm(labeled_data_iter, ncols=50):
+
+        label_loss = model.measure(*data_batch)
+
+        # The show goes on
+        try:
+            utt_list, _, _, adj_list, adj_full_list, adj_id_list = next(iter(unlabeled_data_iter))
+        except StopIteration:
+            unlabeled_data_iter = iter(unlabeled_data_iter)
+            utt_list, _, _, adj_list, adj_full_list, adj_id_list = next(iter(unlabeled_data_iter))
+
+        vat_loss = vat.perform_vat(model, perturbation_level, utt_list, adj_list, adj_full_list, adj_id_list)
+
+        total_loss_ce += label_loss.cpu().item() 
+        total_loss_vat += vat_loss.cpu().item()
+
+        print("\n\n")
+        print(label_loss)
+        print("\n\n")
+        print(vat_loss)
+
+        # Combine losses
+        loss = label_loss + vat_loss
+
+        print("\n\n")
+        print(loss)
+        exit()
+
+        # Update weights
+        optimizer.zero_grad()
+        loss.backward()
+
         torch.nn.utils.clip_grad_norm_(
             model.parameters(), max_grad
         )
@@ -87,7 +139,7 @@ def vat_training(model, data_iter, max_grad=10.0, bert_lr=1e-5, pretrained_model
         optimizer.step()
 
     time_con = time.time() - time_start
-    return total_loss, time_con
+    return total_loss_ce, total_loss_vat, time_con
 
 
 def evaluate(model, data_iter, mastodon_metric, cm_name):

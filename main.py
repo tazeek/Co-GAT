@@ -6,11 +6,13 @@ import argparse
 import time
 import pickle
 
+from torch.utils.tensorboard import SummaryWriter
+
 from utils import DataHub
 from nn import TaggingAgent
 from utils import fix_random_state
 from utils import training, evaluate
-from utils.process import vat_training
+from utils.process import vat_training, semi_supervised_training
 from utils.dict import PieceAlphabet
 
 def get_file_names(args):
@@ -102,6 +104,9 @@ def print_trainable_params(model):
 args = get_hyperparams_args()
 print(json.dumps(args.__dict__, indent=True), end="\n\n\n")
 
+writer_logs = args.perturbation or 'basic'
+writer = SummaryWriter(f'logs/new_approach_speaker_layer')
+
 # fix random seed
 fix_random_state(args.random_state)
 
@@ -153,22 +158,35 @@ loss_storage = {
 for epoch in range(0, args.num_epoch + 1):
 
     print(f"Training Epoch: {epoch} \n\n")
-
-    # Start training
-    train_loss, train_time = training(model, labeled_data_house.get_iterator("train", args.batch_size, True),
-                                      10.0, args.bert_learning_rate, args.pretrained_model)
-    
-    # Training dataset update
-    print(f"\n[Epoch {epoch} - Training] Train loss is {train_loss:.4f}, cost {train_time:.4f} s.\n")
+    train_loss, vat_loss, train_time = None, None, None
 
     # Perform VAT
     if args.vat_applied:
 
-        vat_loss, vat_time = vat_training(model, labeled_data_house.get_iterator("dev", args.batch_size, True),
-                                          10.0, args.bert_learning_rate, args.pretrained_model)
-        
-        print(f"\n[Epoch {epoch} - VAT] VAT loss is {vat_loss:.4f}, cost {vat_time:.4f} s.\n")
+        #vat_loss, vat_time = vat_training(model, labeled_data_house.get_iterator("dev", args.batch_size, True),
+        #                                  10.0, args.bert_learning_rate, args.pretrained_model)
+
+        train_loss, vat_loss, train_time = semi_supervised_training(
+            model,
+            labeled_data_house.get_iterator("train", args.batch_size, True),
+            labeled_data_house.get_iterator("dev", args.batch_size, True),
+            10.0, 
+            args.bert_learning_rate, 
+            args.pretrained_model
+
+        )
+
         loss_storage['vat_loss'].append(vat_loss)
+        writer.add_scalar('train/vat_loss', vat_loss, epoch)
+
+    # Start training
+    #train_loss, train_time = training(model, labeled_data_house.get_iterator("train", args.batch_size, True),
+    #                                  10.0, args.bert_learning_rate, args.pretrained_model)
+    
+    writer.add_scalar('train/loss', train_loss, epoch)
+    
+    # Training dataset update
+    print(f"\n[Epoch {epoch} - Training]\nTrain loss is {train_loss:.4f}\nVAT loss is {vat_loss:.4f}\nTime is {train_time:.4f} s.\n\n")
 
     # Validation dataset (Skip it)
     #dev_sent_f1, dev_sent_r, dev_sent_p, dev_act_f1, dev_act_r, dev_act_p, dev_time = evaluate(
@@ -185,6 +203,14 @@ for epoch in range(0, args.num_epoch + 1):
     #print("=" * 15)
     #print(f"Sentiment:\nF1: {dev_sent_f1}\nRecall: {dev_sent_r}\nPrecision: {dev_sent_p}\n\n")
     #print(f"Dialog Act:\nF1: {dev_act_f1}\nRecall: {dev_act_r}\nPrecision: {dev_act_p}\n\n")
+
+    writer.add_scalar('test/emo_f1', test_sent_f1, epoch)
+    writer.add_scalar('test/emo_r', sent_r, epoch)
+    writer.add_scalar('test/emo_p', sent_p, epoch)
+
+    writer.add_scalar('test/act_f1', test_act_f1, epoch)
+    writer.add_scalar('test/act_r', act_r, epoch)
+    writer.add_scalar('test/act_p', act_p, epoch)
 
     print("\nTest Set")
     print("=" * 15)
