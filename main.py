@@ -196,7 +196,7 @@ for epoch in range(0, args.num_epoch + 1):
     loss_storage['train_loss'].append(train_loss)
 
     # Testing dataset
-    test_sent_f1, sent_r, sent_p, test_act_f1, act_r, act_p, test_time = evaluate(
+    test_sent_f1, sent_r, sent_p, test_time = evaluate(
         model, labeled_data_house.get_iterator("test", args.batch_size, False), use_mastodon_metric, confusion_matrix_name)
     
     #print("Development Set")
@@ -208,14 +208,14 @@ for epoch in range(0, args.num_epoch + 1):
     writer.add_scalar('test/emo_r', sent_r, epoch)
     writer.add_scalar('test/emo_p', sent_p, epoch)
 
-    writer.add_scalar('test/act_f1', test_act_f1, epoch)
-    writer.add_scalar('test/act_r', act_r, epoch)
-    writer.add_scalar('test/act_p', act_p, epoch)
+    #writer.add_scalar('test/act_f1', test_act_f1, epoch)
+    #writer.add_scalar('test/act_r', act_r, epoch)
+    #writer.add_scalar('test/act_p', act_p, epoch)
 
     print("\nTest Set")
     print("=" * 15)
     print(f"\nEmotion Recognition:\n\nF1: {test_sent_f1:.4f}\nRecall: {sent_r:.4f}\nPrecision: {sent_p:.4f}\n\n")
-    print(f"Dialog Act Recognition:\n\nF1: {test_act_f1:.4f}\nRecall: {act_r:.4f}\nPrecision: {act_p:.4f}\n\n")
+    #print(f"Dialog Act Recognition:\n\nF1: {test_act_f1:.4f}\nRecall: {act_r:.4f}\nPrecision: {act_p:.4f}\n\n")
 
     #print("On dev, sentiment f1: {:.4f}, act f1: {:.4f}".format(dev_sent_f1, dev_act_f1))
     #print("On test, sentiment f1: {:.4f}, act f1 {:.4f}".format(test_sent_f1, test_act_f1))

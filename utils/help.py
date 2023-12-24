@@ -81,9 +81,9 @@ def nest_list(e_list, len_list):
 def load_pickle_file(file_path):
     dataset = []
 
-    with open(file_path, 'r') as file:
+    with open(file_path, 'rb') as file:
         dataset = pickle.load(file)
-        
+
     return dataset
 
 

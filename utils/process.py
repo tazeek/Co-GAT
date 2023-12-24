@@ -14,7 +14,7 @@ from utils.help import iterable_support, expand_list
 from transformers import AdamW
 from nn import vat
 
-def _save_confusion_matrix(sent_matrix, act_matrix, cm_name):
+def _save_confusion_matrix(sent_matrix, cm_name):
 
     # For the emotions/sentiment
 
@@ -22,8 +22,8 @@ def _save_confusion_matrix(sent_matrix, act_matrix, cm_name):
         pickle.dump(sent_matrix, handle, protocol=pickle.HIGHEST_PROTOCOL)
 
     # For the dialog act
-    with open(cm_name + '_act_matrix.pickle', 'wb') as handle:
-        pickle.dump(act_matrix, handle, protocol=pickle.HIGHEST_PROTOCOL)
+    #with open(cm_name + '_act_matrix.pickle', 'wb') as handle:
+    #    pickle.dump(act_matrix, handle, protocol=pickle.HIGHEST_PROTOCOL)
 
     return None
 
@@ -88,7 +88,7 @@ def vat_training(model, data_iter, max_grad=10.0, bert_lr=1e-5, pretrained_model
 def semi_supervised_training(model, labeled_data_iter, unlabeled_data_iter, max_grad=10.0, bert_lr=1e-5, pretrained_model="none"):
 
     model.train()
-    perturbation_level = 'speaker_layer'
+    perturbation_level = 'bilstm_layer'
 
     # using pretrain model need to change optimizer (Adam -> AdamW).
     if pretrained_model != "none":
@@ -116,17 +116,8 @@ def semi_supervised_training(model, labeled_data_iter, unlabeled_data_iter, max_
         total_loss_ce += label_loss.cpu().item() 
         total_loss_vat += vat_loss.cpu().item()
 
-        print("\n\n")
-        print(label_loss)
-        print("\n\n")
-        print(vat_loss)
-
         # Combine losses
         loss = label_loss + vat_loss
-
-        print("\n\n")
-        print(loss)
-        exit()
 
         # Update weights
         optimizer.zero_grad()
@@ -155,10 +146,10 @@ def evaluate(model, data_iter, mastodon_metric, cm_name):
         gold_act.extend(act)
 
         with torch.no_grad():
-            p_sent, p_act = model.predict(utt, adj, adj_full, adj_I)
+            p_sent = model.predict(utt, adj, adj_full, adj_I)
         
         pred_sent.extend(p_sent)
-        pred_act.extend(p_act)
+        #pred_act.extend(p_act)
 
     if not mastodon_metric:
 
@@ -173,26 +164,26 @@ def evaluate(model, data_iter, mastodon_metric, cm_name):
     pred_sent = iterable_support(model.sent_vocab.index, pred_sent)
     gold_sent = iterable_support(model.sent_vocab.index, gold_sent)
 
-    pred_act = iterable_support(model.act_vocab.index, pred_act)
-    gold_act = iterable_support(model.act_vocab.index, gold_act)
+    #pred_act = iterable_support(model.act_vocab.index, pred_act)
+    #gold_act = iterable_support(model.act_vocab.index, gold_act)
 
     pred_sent = expand_list(pred_sent)
     gold_sent = expand_list(gold_sent)
 
-    pred_act = expand_list(pred_act)
-    gold_act = expand_list(gold_act)
+    #pred_act = expand_list(pred_act)
+    #gold_act = expand_list(gold_act)
 
     sent_f1, sent_r, sent_p = reference.validate_emot(pred_sent, gold_sent)
-    act_f1, act_r, act_p = reference.validate_act(pred_act, gold_act)
+    #act_f1, act_r, act_p = reference.validate_act(pred_act, gold_act)
 
     if cm_name is not None:
 
         # Get the confusion matrix
-        act_matrix = confusion_matrix(gold_act, pred_act)
+        #act_matrix = confusion_matrix(gold_act, pred_act)
         sent_matrix = confusion_matrix(gold_sent, pred_sent)
 
         # Save the confusion matrix
-        _save_confusion_matrix(sent_matrix, act_matrix, cm_name)
+        _save_confusion_matrix(sent_matrix, cm_name)
 
     time_con = time.time() - time_start
-    return sent_f1, sent_r, sent_p, act_f1, act_r, act_p, time_con
+    return sent_f1, sent_r, sent_p, time_con

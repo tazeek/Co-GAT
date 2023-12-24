@@ -286,7 +286,7 @@ class TaggingAgent(nn.Module):
 
         full_encoded = self.extract_from_speaker_layer(bi_ret, var_adj)
         sent_h, act_h = self.decode_with_gat(full_encoded, len_list, var_adj_R)
-        pred_sent, pred_act = self.forward(sent_h, act_h)
+        pred_sent = self.forward(sent_h, act_h)
 
         # Get the labels
         trim_list = [len(l) for l in len_list]
@@ -296,32 +296,32 @@ class TaggingAgent(nn.Module):
              i in range(0, len(trim_list))], dim=0
         )
         
-        flat_act = torch.cat(
-            [pred_act[i, :trim_list[i], :] for
-             i in range(0, len(trim_list))], dim=0
-        )
+        #flat_act = torch.cat(
+        #    [pred_act[i, :trim_list[i], :] for
+        #     i in range(0, len(trim_list))], dim=0
+        #)
 
         # Narrow down to top-k (In this case, the top label)
         _, top_sent = flat_sent.topk(1, dim=-1)
-        _, top_act = flat_act.topk(1, dim=-1)
+        #_, top_act = flat_act.topk(1, dim=-1)
 
         # Mount to CPU and convert to list
         # Return once done
         sent_list = top_sent.cpu().numpy().flatten().tolist()
-        act_list = top_act.cpu().numpy().flatten().tolist()
+        #act_list = top_act.cpu().numpy().flatten().tolist()
 
         nest_sent = nest_list(sent_list, trim_list)
-        nest_act = nest_list(act_list, trim_list)
+        #nest_act = nest_list(act_list, trim_list)
 
         string_sent = iterable_support(
             self._sent_vocab.get, nest_sent
         )
         
-        string_act = iterable_support(
-            self._act_vocab.get, nest_act
-        )
+        #string_act = iterable_support(
+        #    self._act_vocab.get, nest_act
+        #)
         
-        return string_sent, string_act
+        return string_sent#, string_act
 
     def measure(self, utt_list, sent_list, act_list, adj_list, adj_full_list, adj_id_list):
         
@@ -362,7 +362,8 @@ class TaggingAgent(nn.Module):
 
         full_encoded = self.extract_from_speaker_layer(bi_ret, var_adj)
         sent_h, act_h = self.decode_with_gat(full_encoded, len_list, var_adj_R)
-        pred_sent, pred_act = self.forward(sent_h, act_h)
+        #pred_sent, pred_act = self.forward(sent_h, act_h)
+        pred_sent = self.forward(sent_h, act_h)
        
         trim_list = [len(l) for l in len_list]
 
@@ -372,17 +373,17 @@ class TaggingAgent(nn.Module):
              i in range(0, len(trim_list))], dim=0
         )
 
-        flat_pred_a = torch.cat(
-            [pred_act[i, :trim_list[i], :] for
-             i in range(0, len(trim_list))], dim=0
-        )
+        #flat_pred_a = torch.cat(
+        #    [pred_act[i, :trim_list[i], :] for
+        #     i in range(0, len(trim_list))], dim=0
+        #)
 
         # Calculate the loss after softmax (IMPORTANT)
         sent_loss = self._criterion(
             F.log_softmax(flat_pred_s, dim=-1), var_sent
         )
 
-        act_loss = self._criterion(
-            F.log_softmax(flat_pred_a, dim=-1), var_act
-        )
-        return sent_loss + act_loss
+        #act_loss = self._criterion(
+        #    F.log_softmax(flat_pred_a, dim=-1), var_act
+        #)
+        return sent_loss# + act_loss
