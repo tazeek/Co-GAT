@@ -7,6 +7,7 @@ from sklearn.metrics import f1_score
 from sklearn.metrics import recall_score
 from sklearn.metrics import precision_score
 
+import pickle
 import torch
 from torch import cuda
 
@@ -76,6 +77,14 @@ def nest_list(e_list, len_list):
         n_list.append(e_list[sent_start: sent_end])
         sent_start = sent_end
     return n_list
+
+def load_pickle_file(file_path):
+    dataset = []
+
+    with open(file_path, 'r') as file:
+        dataset = pickle.load(file)
+        
+    return dataset
 
 
 def load_json_file(file_path):

@@ -6,7 +6,7 @@ from torch.utils.data import DataLoader
 
 from utils.dict import WordAlphabet
 from utils.dict import LabelAlphabet
-from utils.help import load_json_file, load_txt
+from utils.help import load_json_file, load_txt, load_pickle_file
 from utils.help import iterable_support
 
 
@@ -54,7 +54,9 @@ class DataHub(object):
         house = DataHub()
 
         house._data_collection["train"] = house._read_data(
-            os.path.join(dir_path, "train.json"), True
+            os.path.join(dir_path, "train.json"),
+            os.path.join(dir_path, "train_dataset_vad.pkl"),
+            True
         )
 
         house._data_collection["dev"] = house._read_data(
@@ -112,13 +114,22 @@ class DataHub(object):
 
     def _read_data(self,
                    file_path: str,
+                   pickle_path: str,
                    build_vocab: bool = False):
         """
         On train, set build_vocab=True, will build alphabet
         """
 
         utt_list, sent_list, act_list = [], [], []
-        dialogue_list = load_json_file(file_path)
+
+        # Read the JSON file
+        # Replace with: Pickle loader
+        dialogue_list_json = load_json_file(file_path)
+        dialogue_list_pickle = load_pickle_file(pickle_path)
+
+        print(f'From pickle: {len(dialogue_list_pickle)}')
+        print(f'From JSON: {len(dialogue_list_json)}')
+        quit()
 
         for session in dialogue_list:
             utt, emotion, act = [], [], []
