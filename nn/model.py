@@ -1,4 +1,5 @@
 import json
+import numpy as np
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -48,6 +49,7 @@ class TaggingAgent(nn.Module):
             nn.Embedding(len(word_vocab), embedding_dim),
             hidden_dim, dropout_rate, pretrained_model
         )
+
         if use_linear_decoder:
             self._decoder = LinearDecoder(len(sent_vocab), len(act_vocab), hidden_dim)
         else:
@@ -92,7 +94,7 @@ class TaggingAgent(nn.Module):
     def act_vocab(self):
         return self._act_vocab
 
-    def _wrap_padding(self, dial_list, adj_list, adj_full_list, adj_id_list, use_noise):
+    def _wrap_padding(self, dial_list, personality_list, adj_list, adj_full_list, adj_id_list, use_noise):
         
         # Find maximum dialog length
         dial_len_list = [len(d) for d in dial_list]
@@ -196,21 +198,34 @@ class TaggingAgent(nn.Module):
 
         # For adjusting the dialog length
         # and for token conversion (Not Pretrained model)
-        pad_w_list, pad_sign = [], self._word_vocab.PAD_SIGN
+        pad_w_list, pad_per_list, pad_sign = [], [], self._word_vocab.PAD_SIGN
+        print("\n\n")
 
         for dial_i in range(0, len(dial_list)):
 
             pad_w_list.append([])
+            pad_per_list.append([])
 
-            for turn in dial_list[dial_i]:
+            conversation_personality = personality_list[dial_i]
+
+            for personality, turn in zip(conversation_personality, dial_list[dial_i]):
 
                 if use_noise:
                     noise_turn = noise_augment(self._word_vocab, turn, 5.0)
                 else:
                     noise_turn = turn
 
+                # Tokenization form
                 pad_utt = noise_turn + [pad_sign] * (max_turn_len - len(turn))
+
+                # Conversion from tokens to IDs
                 pad_w_list[-1].append(iterable_support(self._word_vocab.index, pad_utt))
+                pad_per_list[-1].append(list(personality))
+            
+            print(len(pad_w_list[0]))
+            print("\n\n")
+            print(len(pad_per_list[0]))
+            quit()
 
             if len(dial_list[dial_i]) < max_dial_len:
 
@@ -323,12 +338,14 @@ class TaggingAgent(nn.Module):
         
         return string_sent#, string_act
 
-    def measure(self, utt_list, sent_list, act_list, adj_list, adj_full_list, adj_id_list):
+    def measure(self, utt_list, sent_list, act_list, personality_list, adj_list, adj_full_list, adj_id_list):
         
         # Data Preprocessing here
-        var_utt, var_p, mask, len_list, _, var_adj, var_adj_full, var_adj_R = \
-            self._wrap_padding(utt_list, adj_list, adj_full_list, adj_id_list, True)
 
+        var_utt, var_p, mask, len_list, _, var_adj, var_adj_full, var_adj_R = \
+            self._wrap_padding(utt_list, personality_list, adj_list, adj_full_list, adj_id_list, True)
+
+        print(var_utt.shape)
         # Get the gold labels
         flat_sent = iterable_support(
             self._sent_vocab.index, sent_list
@@ -341,27 +358,36 @@ class TaggingAgent(nn.Module):
         index_sent = expand_list(flat_sent)
         index_act = expand_list(flat_act)
 
+        print(personality_list)
+        quit()
+
         # Convert to Tensors
         var_sent = torch.LongTensor(index_sent)
         var_act = torch.LongTensor(index_act)
+        var_personality = torch.from_numpy(personality_list)
 
         # Mount to CUDA
         if torch.cuda.is_available():
             var_sent = var_sent.cuda()
             var_act = var_act.cuda()
+            var_personality = var_personality.cuda()
+
+        print("\n\nWE ARE NOT HERE\n\n")
+        quit()
 
         # Training starts here
         bi_ret = None 
         if self._pretrained_model != "none":
-
             bi_ret = self.extract_utterance_features(var_p, mask)
-        
         else:
-            
             bi_ret = self.extract_utterance_features(var_utt, None)
 
+        # Middle fusion
         full_encoded = self.extract_from_speaker_layer(bi_ret, var_adj)
+
+        # Late Fusion
         sent_h, act_h = self.decode_with_gat(full_encoded, len_list, var_adj_R)
+
         #pred_sent, pred_act = self.forward(sent_h, act_h)
         pred_sent = self.forward(sent_h, act_h)
        
