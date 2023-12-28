@@ -201,8 +201,6 @@ class TaggingAgent(nn.Module):
         pad_w_list, pad_per_list, pad_sign = [], [], self._word_vocab.PAD_SIGN
         empty_personality_list = [0] * 250
 
-        print("\n\n")
-
         for dial_i in range(0, len(dial_list)):
 
             pad_w_list.append([])
@@ -233,27 +231,7 @@ class TaggingAgent(nn.Module):
                 # Add to the list
                 pad_w_list[-1].extend(iterable_support(self._word_vocab.index, pad_dial))
                 pad_per_list[-1].extend(personality_dial)
-        
 
-        print(dial_list[0])
-        for conversation in pad_per_list:
-            for index,personality in enumerate(conversation):
-                print(index)
-                print(pad_w_list[0][0][index])
-                print(len(pad_w_list[0][0]))
-                if len(personality) != 250:
-                    print(len(personality))
-                    print("DANGER DANGER")
-                    print("\n")
-                else:
-                    print(len(personality))
-                    print("All good!")
-                    print("\n")
-                
-            quit()
-
-        #personality_array = np.asarray(pad_per_list)
-        quit()
         # For tokenization (Pre-trained models)
         cls_sign = self._piece_vocab.CLS_SIGN
         piece_list, sep_sign = [], self._piece_vocab.SEP_SIGN
@@ -295,36 +273,35 @@ class TaggingAgent(nn.Module):
         var_adj_full_dial = torch.LongTensor(pad_adj_full_list)
         var_adj_R_dial = torch.LongTensor(pad_adj_R_list)
 
-        quit()
-
         if torch.cuda.is_available():
             var_w_dial = var_w_dial.cuda()
+            var_per_dial = var_per_dial.cuda()
             var_p_dial = var_p_dial.cuda()
             var_mask = var_mask.cuda()
             var_adj_dial = var_adj_dial.cuda()
             var_adj_full_dial = var_adj_full_dial.cuda()
             var_adj_R_dial = var_adj_R_dial.cuda()
 
-        return var_w_dial, var_p_dial, var_mask, turn_len_list, p_len_list, var_adj_dial, var_adj_full_dial, \
+        return var_w_dial, var_per_dial, var_p_dial, var_mask, turn_len_list, p_len_list, var_adj_dial, var_adj_full_dial, \
             var_adj_R_dial
 
     def predict(self, utt_list, adj_list, adj_full_list, adj_id_list):
         
         # Perform preprocessing
-        var_utt, var_p, mask, len_list, _, var_adj, var_adj_full, var_adj_R = \
+        var_utt, var_personality, var_p, mask, len_list, _, var_adj, var_adj_full, var_adj_R = \
             self._wrap_padding(utt_list, adj_list, adj_full_list, adj_id_list, False)
         
         # Perform predictions
         bi_ret = None 
         if self._pretrained_model != "none":
-
             bi_ret = self.extract_utterance_features(var_p, mask)
-        
         else:
-            
             bi_ret = self.extract_utterance_features(var_utt, None)
 
+        # Middle fusion
         full_encoded = self.extract_from_speaker_layer(bi_ret, var_adj)
+
+        # Late fusion
         sent_h, act_h = self.decode_with_gat(full_encoded, len_list, var_adj_R)
         pred_sent = self.forward(sent_h, act_h)
 
@@ -367,10 +344,9 @@ class TaggingAgent(nn.Module):
         
         # Data Preprocessing here
 
-        var_utt, var_p, mask, len_list, _, var_adj, var_adj_full, var_adj_R = \
+        var_utt, var_personality, var_p, mask, len_list, _, var_adj, var_adj_full, var_adj_R = \
             self._wrap_padding(utt_list, personality_list, adj_list, adj_full_list, adj_id_list, True)
 
-        print(var_utt.shape)
         # Get the gold labels
         flat_sent = iterable_support(
             self._sent_vocab.index, sent_list
@@ -383,34 +359,31 @@ class TaggingAgent(nn.Module):
         index_sent = expand_list(flat_sent)
         index_act = expand_list(flat_act)
 
-        print(personality_list)
-        quit()
-
         # Convert to Tensors
         var_sent = torch.LongTensor(index_sent)
         var_act = torch.LongTensor(index_act)
-        var_personality = torch.from_numpy(personality_list)
 
         # Mount to CUDA
         if torch.cuda.is_available():
             var_sent = var_sent.cuda()
             var_act = var_act.cuda()
-            var_personality = var_personality.cuda()
-
-        print("\n\nWE ARE NOT HERE\n\n")
-        quit()
 
         # Training starts here
         bi_ret = None 
+
         if self._pretrained_model != "none":
             bi_ret = self.extract_utterance_features(var_p, mask)
         else:
             bi_ret = self.extract_utterance_features(var_utt, None)
 
-        # Middle fusion
+        # Middle fusion - Before the speaker layer
         full_encoded = self.extract_from_speaker_layer(bi_ret, var_adj)
 
-        # Late Fusion
+        # Late fusion - Before the GAT layer
+        print(full_encoded.shape)
+        full_encoded = torch.cat((full_encoded, var_personality), dim=2)
+        print(full_encoded.shape)
+        quit()
         sent_h, act_h = self.decode_with_gat(full_encoded, len_list, var_adj_R)
 
         #pred_sent, pred_act = self.forward(sent_h, act_h)
