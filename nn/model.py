@@ -199,6 +199,8 @@ class TaggingAgent(nn.Module):
         # For adjusting the dialog length
         # and for token conversion (Not Pretrained model)
         pad_w_list, pad_per_list, pad_sign = [], [], self._word_vocab.PAD_SIGN
+        empty_personality_list = [0] * 250
+
         print("\n\n")
 
         for dial_i in range(0, len(dial_list)):
@@ -221,16 +223,14 @@ class TaggingAgent(nn.Module):
                 # Conversion from tokens to IDs
                 pad_w_list[-1].append(iterable_support(self._word_vocab.index, pad_utt))
                 pad_per_list[-1].append(list(personality))
-            
-            print(len(pad_w_list[0]))
-            print("\n\n")
-            print(len(pad_per_list[0]))
-            quit()
 
             if len(dial_list[dial_i]) < max_dial_len:
 
                 pad_dial = [[pad_sign] * max_turn_len] * (max_dial_len - len(dial_list[dial_i]))
+                personality_dial = [empty_personality_list * max_turn_len] * (max_dial_len - len(dial_list[dial_i]))
+
                 pad_w_list[-1].extend(iterable_support(self._word_vocab.index, pad_dial))
+                pad_per_list[-1].extend(personality_dial)
 
         # For tokenization (Pre-trained models)
         cls_sign = self._piece_vocab.CLS_SIGN
