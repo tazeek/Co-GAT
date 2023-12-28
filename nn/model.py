@@ -226,12 +226,34 @@ class TaggingAgent(nn.Module):
 
             if len(dial_list[dial_i]) < max_dial_len:
 
+                # Create pads
                 pad_dial = [[pad_sign] * max_turn_len] * (max_dial_len - len(dial_list[dial_i]))
-                personality_dial = [empty_personality_list * max_turn_len] * (max_dial_len - len(dial_list[dial_i]))
-
+                personality_dial = [empty_personality_list] * (max_dial_len - len(dial_list[dial_i]))
+                
+                # Add to the list
                 pad_w_list[-1].extend(iterable_support(self._word_vocab.index, pad_dial))
                 pad_per_list[-1].extend(personality_dial)
+        
 
+        print(dial_list[0])
+        for conversation in pad_per_list:
+            for index,personality in enumerate(conversation):
+                print(index)
+                print(pad_w_list[0][0][index])
+                print(len(pad_w_list[0][0]))
+                if len(personality) != 250:
+                    print(len(personality))
+                    print("DANGER DANGER")
+                    print("\n")
+                else:
+                    print(len(personality))
+                    print("All good!")
+                    print("\n")
+                
+            quit()
+
+        #personality_array = np.asarray(pad_per_list)
+        quit()
         # For tokenization (Pre-trained models)
         cls_sign = self._piece_vocab.CLS_SIGN
         piece_list, sep_sign = [], self._piece_vocab.SEP_SIGN
@@ -265,12 +287,15 @@ class TaggingAgent(nn.Module):
                 mask[-1].append([1] * len(turn) + [0] * (max_p_len - len(turn)))
 
         # Convert to Tensors and mount onto Cuda
+        var_per_dial = torch.tensor(pad_per_list)
         var_w_dial = torch.LongTensor(pad_w_list)
         var_p_dial = torch.LongTensor(pad_p_list)
         var_mask = torch.LongTensor(mask)
         var_adj_dial = torch.LongTensor(pad_adj_list)
         var_adj_full_dial = torch.LongTensor(pad_adj_full_list)
         var_adj_R_dial = torch.LongTensor(pad_adj_R_list)
+
+        quit()
 
         if torch.cuda.is_available():
             var_w_dial = var_w_dial.cuda()
