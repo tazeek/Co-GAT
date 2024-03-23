@@ -1,15 +1,3 @@
-# Co-GAT
-This repository contains the PyTorch implementation of the paper: 
-
-**[Co-GAT: A Co-Interactive Graph Attention Network for Joint Dialog Act
-Recognition and Sentiment Classification](https://ojs.aaai.org/index.php/AAAI/article/view/17616)**. 
-Libo Qin, Zhouyang Li, Wanxiang Che, Minheng Ni, Ting Liu. 
-***AAAI 2021***.
-
-## Architecture
-
-<img src="img/framework.jpg">
-
 ## Requirements
 Our code relies on Python 3.6 and following libraries:
 - transformers==3.3.0
@@ -21,10 +9,6 @@ Our code relies on Python 3.6 and following libraries:
 
 ## Run 
 We will teach you how to run our code step by step.
-
-## For Tazeek's info
-Mastodon Utterances: 243 (Train), 26 (Dev), 267 (Test)
-DailyDialogue: 11118 (Train), 1000 (Dev), 1000 (Test)
 
 ### Quick start
 The script **main.py** acts as a main function to the project, you can run the experiments by the following commands.
