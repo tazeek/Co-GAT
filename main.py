@@ -6,7 +6,7 @@ import argparse
 import time
 import pickle
 
-from torch.utils.tensorboard import SummaryWriter
+#from torch.utils.tensorboard import SummaryWriter
 
 from utils import DataHub
 from nn import TaggingAgent
@@ -104,8 +104,8 @@ def print_trainable_params(model):
 args = get_hyperparams_args()
 print(json.dumps(args.__dict__, indent=True), end="\n\n\n")
 
-writer_logs = args.perturbation or 'basic'
-writer = SummaryWriter(f'logs/new_approach_speaker_layer')
+#writer_logs = args.perturbation or 'basic'
+#writer = SummaryWriter(f'logs/new_approach_speaker_layer')
 
 # fix random seed
 fix_random_state(args.random_state)
@@ -158,7 +158,7 @@ loss_storage = {
 for epoch in range(0, args.num_epoch + 1):
 
     print(f"Training Epoch: {epoch} \n\n")
-    train_loss, vat_loss, train_time = None, None, None
+    train_loss, vat_loss, train_time = 0, 0, None
 
     # Perform VAT
     if args.vat_applied:
@@ -177,13 +177,13 @@ for epoch in range(0, args.num_epoch + 1):
         )
 
         loss_storage['vat_loss'].append(vat_loss)
-        writer.add_scalar('train/vat_loss', vat_loss, epoch)
+        #writer.add_scalar('train/vat_loss', vat_loss, epoch)
 
     # Start training
-    #train_loss, train_time = training(model, labeled_data_house.get_iterator("train", args.batch_size, True),
-    #                                  10.0, args.bert_learning_rate, args.pretrained_model)
+    train_loss, train_time = training(model, labeled_data_house.get_iterator("train", args.batch_size, True),
+                                      10.0, args.bert_learning_rate, args.pretrained_model)
     
-    writer.add_scalar('train/loss', train_loss, epoch)
+    #writer.add_scalar('train/loss', train_loss, epoch)
     
     # Training dataset update
     print(f"\n[Epoch {epoch} - Training]\nTrain loss is {train_loss:.4f}\nVAT loss is {vat_loss:.4f}\nTime is {train_time:.4f} s.\n\n")
@@ -204,9 +204,9 @@ for epoch in range(0, args.num_epoch + 1):
     #print(f"Sentiment:\nF1: {dev_sent_f1}\nRecall: {dev_sent_r}\nPrecision: {dev_sent_p}\n\n")
     #print(f"Dialog Act:\nF1: {dev_act_f1}\nRecall: {dev_act_r}\nPrecision: {dev_act_p}\n\n")
 
-    writer.add_scalar('test/emo_f1', test_sent_f1, epoch)
-    writer.add_scalar('test/emo_r', sent_r, epoch)
-    writer.add_scalar('test/emo_p', sent_p, epoch)
+    #writer.add_scalar('test/emo_f1', test_sent_f1, epoch)
+    #writer.add_scalar('test/emo_r', sent_r, epoch)
+    #writer.add_scalar('test/emo_p', sent_p, epoch)
 
     #writer.add_scalar('test/act_f1', test_act_f1, epoch)
     #writer.add_scalar('test/act_r', act_r, epoch)
@@ -224,8 +224,8 @@ for epoch in range(0, args.num_epoch + 1):
 total_training_time = time.time() - start_time
 print(f"\n\nTotal training time: {total_training_time:.4f} s.")
 
-torch.save(model, os.path.join(args.save_dir, f"{model_name}.pt"))
-print("", end="\n")
+#torch.save(model, os.path.join(args.save_dir, f"{model_name}.pt"))
+#print("", end="\n")
 
 # Save the storage parameters
 with open(f'{loss_storage_name}.pickle', 'wb') as handle:

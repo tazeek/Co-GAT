@@ -17,7 +17,6 @@ class DataHub(object):
         self._word_vocab = WordAlphabet("word")
 
         self._sent_vocab = LabelAlphabet("sentiment")
-        self._personality_vocab = LabelAlphabet("personality")
         self._act_vocab = LabelAlphabet("act")
         self._adj_vocab = LabelAlphabet("adj")
         self._adj_full_vocab = LabelAlphabet("adj_full")
@@ -57,19 +56,16 @@ class DataHub(object):
 
         house._data_collection["train"] = house._read_data(
             os.path.join(dir_path, "train.json"),
-            os.path.join(dir_path, "train_dataset_vad.pkl"),
             True
         )
 
         house._data_collection["dev"] = house._read_data(
             os.path.join(dir_path, "dev.json"), 
-            os.path.join(dir_path, "dev_dataset_vad.pkl"),
             False
         )
 
         house._data_collection["test"] = house._read_data(
             os.path.join(dir_path, "test.json"), 
-            os.path.join(dir_path, "test_dataset_vad.pkl"),
             False
         )
 
@@ -120,21 +116,17 @@ class DataHub(object):
 
     def _read_data(self,
                    file_path: str,
-                   pickle_path: str,
                    build_vocab: bool = False):
         """
         On train, set build_vocab=True, will build alphabet
         """
 
-        utt_list, sent_list, act_list, personality_list = [], [], [], []
-
-        # Read the JSON file
-        # Replace with: Pickle loader
-        dialogue_list = load_pickle_file(pickle_path)
+        utt_list, sent_list, act_list = [], [], []
+        dialogue_list = load_json_file(file_path)
 
         # Iterate by conversation
         for session in dialogue_list:
-            utt, emotion, act, personality = [], [], [], []
+            utt, emotion, act = [], [], []
 
             # Iterate by utterance
             for interact in session:
@@ -147,24 +139,9 @@ class DataHub(object):
                 word_list = interact["utterance"].split()
                 utt.append(word_list)
 
-                # Personality
-                # - Big 5
-                personality_features = interact['personality_features']
-                
-                ocean_features = []
-
-                for key in ['EXT', 'NEU', 'AGR', 'CON', 'OPN']:
-                    ocean_features.append(personality_features[key])
-
-                ocean_features = np.array(ocean_features).flatten()
-                personality.append(ocean_features)
-
-                # - VAD
-
             utt_list.append(utt)
             sent_list.append(emotion)
             act_list.append(act)
-            personality_list.append(personality)
             
         # For adjacency matrix creation
         adjpath = file_path.split(".")[0] + "_adj.txt"
@@ -174,14 +151,12 @@ class DataHub(object):
             iterable_support(self._word_vocab.add, utt_list)
             iterable_support(self._sent_vocab.add, sent_list)
             iterable_support(self._act_vocab.add, act_list)
-            iterable_support(self._personality_vocab, personality_list)
-
             iterable_support(self._adj_vocab.add, adj_list)
             iterable_support(self._adj_full_vocab.add, adj_full_list)
             iterable_support(self._adj_id_vocab.add, adj_I_list)
 
         # The returned list is based on dialogue, with three levels of nesting.
-        return utt_list, sent_list, act_list, personality_list, adj_list, adj_full_list, adj_I_list
+        return utt_list, sent_list, act_list, adj_list, adj_full_list, adj_I_list
 
     def get_iterator(self, data_name, batch_size, shuffle):
 

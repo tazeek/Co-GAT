@@ -94,7 +94,7 @@ class TaggingAgent(nn.Module):
     def act_vocab(self):
         return self._act_vocab
 
-    def _wrap_padding(self, dial_list, personality_list, adj_list, adj_full_list, adj_id_list, use_noise):
+    def _wrap_padding(self, dial_list, adj_list, adj_full_list, adj_id_list, use_noise):
         
         # Find maximum dialog length
         dial_len_list = [len(d) for d in dial_list]
@@ -198,17 +198,18 @@ class TaggingAgent(nn.Module):
 
         # For adjusting the dialog length
         # and for token conversion (Not Pretrained model)
-        pad_w_list, pad_per_list, pad_sign = [], [], self._word_vocab.PAD_SIGN
-        empty_personality_list = [0] * 250
+        pad_w_list, pad_sign = [], self._word_vocab.PAD_SIGN
+        #empty_personality_list = [0] * 250
 
         for dial_i in range(0, len(dial_list)):
 
             pad_w_list.append([])
-            pad_per_list.append([])
+            #pad_per_list.append([])
 
-            conversation_personality = personality_list[dial_i]
+            #conversation_personality = personality_list[dial_i]
 
-            for personality, turn in zip(conversation_personality, dial_list[dial_i]):
+            #for personality, turn in zip(conversation_personality, dial_list[dial_i]):
+            for turn in dial_list[dial_i]:
 
                 if use_noise:
                     noise_turn = noise_augment(self._word_vocab, turn, 5.0)
@@ -220,17 +221,17 @@ class TaggingAgent(nn.Module):
 
                 # Conversion from tokens to IDs
                 pad_w_list[-1].append(iterable_support(self._word_vocab.index, pad_utt))
-                pad_per_list[-1].append(list(personality))
+                #pad_per_list[-1].append(list(personality))
 
             if len(dial_list[dial_i]) < max_dial_len:
 
                 # Create pads
                 pad_dial = [[pad_sign] * max_turn_len] * (max_dial_len - len(dial_list[dial_i]))
-                personality_dial = [empty_personality_list] * (max_dial_len - len(dial_list[dial_i]))
+                #personality_dial = [empty_personality_list] * (max_dial_len - len(dial_list[dial_i]))
                 
                 # Add to the list
                 pad_w_list[-1].extend(iterable_support(self._word_vocab.index, pad_dial))
-                pad_per_list[-1].extend(personality_dial)
+                #pad_per_list[-1].extend(personality_dial)
 
         # For tokenization (Pre-trained models)
         cls_sign = self._piece_vocab.CLS_SIGN
@@ -265,7 +266,6 @@ class TaggingAgent(nn.Module):
                 mask[-1].append([1] * len(turn) + [0] * (max_p_len - len(turn)))
 
         # Convert to Tensors and mount onto Cuda
-        var_per_dial = torch.tensor(pad_per_list)
         var_w_dial = torch.LongTensor(pad_w_list)
         var_p_dial = torch.LongTensor(pad_p_list)
         var_mask = torch.LongTensor(mask)
@@ -275,20 +275,19 @@ class TaggingAgent(nn.Module):
 
         if torch.cuda.is_available():
             var_w_dial = var_w_dial.cuda()
-            var_per_dial = var_per_dial.cuda()
             var_p_dial = var_p_dial.cuda()
             var_mask = var_mask.cuda()
             var_adj_dial = var_adj_dial.cuda()
             var_adj_full_dial = var_adj_full_dial.cuda()
             var_adj_R_dial = var_adj_R_dial.cuda()
 
-        return var_w_dial, var_per_dial, var_p_dial, var_mask, turn_len_list, p_len_list, var_adj_dial, var_adj_full_dial, \
+        return var_w_dial, var_p_dial, var_mask, turn_len_list, p_len_list, var_adj_dial, var_adj_full_dial, \
             var_adj_R_dial
 
     def predict(self, utt_list, adj_list, adj_full_list, adj_id_list):
         
         # Perform preprocessing
-        var_utt, var_personality, var_p, mask, len_list, _, var_adj, var_adj_full, var_adj_R = \
+        var_utt, var_p, mask, len_list, _, var_adj, var_adj_full, var_adj_R = \
             self._wrap_padding(utt_list, adj_list, adj_full_list, adj_id_list, False)
         
         # Perform predictions
@@ -340,12 +339,12 @@ class TaggingAgent(nn.Module):
         
         return string_sent#, string_act
 
-    def measure(self, utt_list, sent_list, act_list, personality_list, adj_list, adj_full_list, adj_id_list):
+    def measure(self, utt_list, sent_list, act_list, adj_list, adj_full_list, adj_id_list):
         
         # Data Preprocessing here
 
-        var_utt, var_personality, var_p, mask, len_list, _, var_adj, var_adj_full, var_adj_R = \
-            self._wrap_padding(utt_list, personality_list, adj_list, adj_full_list, adj_id_list, True)
+        var_utt, var_p, mask, len_list, _, var_adj, var_adj_full, var_adj_R = \
+            self._wrap_padding(utt_list, adj_list, adj_full_list, adj_id_list, True)
 
         # Get the gold labels
         flat_sent = iterable_support(
@@ -379,11 +378,7 @@ class TaggingAgent(nn.Module):
         # Middle fusion - Before the speaker layer
         full_encoded = self.extract_from_speaker_layer(bi_ret, var_adj)
 
-        # Late fusion - Before the GAT layer
-        print(full_encoded.shape)
-        full_encoded = torch.cat((full_encoded, var_personality), dim=2)
-        print(full_encoded.shape)
-        quit()
+        # Late fusion - Before the GAT layer   
         sent_h, act_h = self.decode_with_gat(full_encoded, len_list, var_adj_R)
 
         #pred_sent, pred_act = self.forward(sent_h, act_h)
@@ -410,4 +405,5 @@ class TaggingAgent(nn.Module):
         #act_loss = self._criterion(
         #    F.log_softmax(flat_pred_a, dim=-1), var_act
         #)
+
         return sent_loss# + act_loss
