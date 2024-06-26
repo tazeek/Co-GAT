@@ -15,10 +15,11 @@ def _create_random_tensor(input, xi=1e-6):
 
     return random_noise
 
-def _perturbation_lstm_layer(model, var_utt, mask, var_adj, len_list, var_adj_R, noise = None):
+def _perturbation_lstm_layer(model, var_utt, var_p, mask, var_adj, len_list, var_adj_R, noise = None):
 
     # Extract the features
-    bi_ret = model.extract_utterance_features(var_utt, None)
+    #bi_ret = model.extract_utterance_features(var_utt, None)
+    bi_ret = model.extract_utterance_features(var_p, mask)
 
     # If starting the first time, there won't be noise
     # Hence, generate it
@@ -44,10 +45,11 @@ def _perturbation_lstm_layer(model, var_utt, mask, var_adj, len_list, var_adj_R,
     # Return perturbed logits and the perturbation
     return noise, pert_pred_sent
 
-def _perturbation_output_layer(model, var_utt, mask, var_adj, len_list, var_adj_R, emo_noise=None, act_noise=None):
+def _perturbation_output_layer(model, var_utt, var_p, mask, var_adj, len_list, var_adj_R, emo_noise=None, act_noise=None):
 
     # Extract the features
-    bi_ret = model.extract_utterance_features(var_utt, None)
+    #bi_ret = model.extract_utterance_features(var_utt, None)
+    bi_ret = model.extract_utterance_features(var_p, mask)
 
     # Pass to speaker layer
     encoded = model.extract_from_speaker_layer(bi_ret, var_adj)
@@ -96,10 +98,11 @@ def _convert_predictions(pred_sent, len_list):
 
     return flat_pred_s#, flat_pred_a
 
-def _get_original_logits(model, var_utt, mask, var_adj, len_list, var_adj_R):
+def _get_original_logits(model, var_utt, var_p, mask, var_adj, len_list, var_adj_R):
 
     # BiLSTM first
-    bi_ret = model.extract_utterance_features(var_utt, None)
+    #bi_ret = model.extract_utterance_features(var_utt, None)
+    bi_ret = model.extract_utterance_features(var_p, mask)
 
     # Speaker layer next
     full_encoded = model.extract_from_speaker_layer(bi_ret, var_adj)
@@ -151,7 +154,7 @@ def perform_vat(model, perturbation_level, utt_list, adj_list, adj_full_list, ad
 
     with torch.no_grad():
         original_logits_sent = _get_original_logits(
-            model, var_utt, mask, var_adj, 
+            model, var_utt, var_p, mask, var_adj, 
             len_list, var_adj_R
         )
 
@@ -160,11 +163,11 @@ def perform_vat(model, perturbation_level, utt_list, adj_list, adj_full_list, ad
     perturbation_raw, pert_logits_sent, pert_logits_act = None, None, None
 
     perturb_sent, pert_logits_sent = \
-        _perturbation_lstm_layer(model, var_utt, mask, var_adj, len_list, var_adj_R, None)
+        _perturbation_lstm_layer(model, var_utt, var_p, mask, var_adj, len_list, var_adj_R, None)
 
     #
     #perturb_sent, perturb_act, pert_logits_sent, pert_logits_act = \
-    #    _perturbation_output_layer(model, var_utt, mask, var_adj, len_list, var_adj_R, None)
+    #    _perturbation_output_layer(model, var_utt, var_p, mask, var_adj, len_list, var_adj_R, None)
 
     # There are two sets of logits: Sentiment and Act
     # Permutations: Act loss, Emo loss, Dual loss (divide by 2)
@@ -178,7 +181,7 @@ def perform_vat(model, perturbation_level, utt_list, adj_list, adj_full_list, ad
 
     # Run again with the adjusted perturbation
     _, pert_logits_sent = \
-            _perturbation_lstm_layer(model, var_utt, mask, var_adj, len_list, var_adj_R, perturb_sent)
+            _perturbation_lstm_layer(model, var_utt, var_p, mask, var_adj, len_list, var_adj_R, perturb_sent)
 
     #_perturbation_lstm_layer(model, var_utt, mask, var_adj, len_list, var_adj_R, noise = None)
     # Get the second KL Div loss (this is based on the updated perturbation)
