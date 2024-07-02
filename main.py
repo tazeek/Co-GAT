@@ -14,6 +14,7 @@ from utils import fix_random_state
 from utils import training, evaluate
 from utils.process import vat_training, semi_supervised_training
 from utils.dict import PieceAlphabet
+from pprint import pprint
 
 def get_file_names(args):
 
@@ -169,7 +170,7 @@ for epoch in range(0, args.num_epoch + 1):
         train_loss, vat_loss, train_time = semi_supervised_training(
             model,
             labeled_data_house.get_iterator("train", args.batch_size, True),
-            labeled_data_house.get_iterator("dev", args.batch_size, True),
+            unlabeled_data_house.get_iterator("train", args.batch_size, True),
             10.0, 
             args.bert_learning_rate, 
             args.pretrained_model
@@ -178,15 +179,16 @@ for epoch in range(0, args.num_epoch + 1):
 
         loss_storage['vat_loss'].append(vat_loss)
         #writer.add_scalar('train/vat_loss', vat_loss, epoch)
-
-    # Start training
-    train_loss, train_time = training(model, labeled_data_house.get_iterator("train", args.batch_size, True),
-                                      10.0, args.bert_learning_rate, args.pretrained_model)
+        print(f"\n[Epoch {epoch} - Training]\nTrain loss is {train_loss:.4f}\nVAT loss is {vat_loss:.4f}\nTime is {train_time:.4f} s.\n\n")
+    else:
+        # Start training
+        train_loss, train_time = training(model, labeled_data_house.get_iterator("train", args.batch_size, True),
+                                        10.0, args.bert_learning_rate, args.pretrained_model)
     
     #writer.add_scalar('train/loss', train_loss, epoch)
     
-    # Training dataset update
-    print(f"\n[Epoch {epoch} - Training]\nTrain loss is {train_loss:.4f}\nVAT loss is {vat_loss:.4f}\nTime is {train_time:.4f} s.\n\n")
+        # Training dataset update
+        print(f"\n[Epoch {epoch} - Training]\nTrain loss is {train_loss:.4f}\n\nTime is {train_time:.4f} s.\n\n")
 
     # Validation dataset (Skip it)
     #dev_sent_f1, dev_sent_r, dev_sent_p, dev_act_f1, dev_act_r, dev_act_p, dev_time = evaluate(
@@ -196,8 +198,16 @@ for epoch in range(0, args.num_epoch + 1):
     loss_storage['train_loss'].append(train_loss)
 
     # Testing dataset
-    test_sent_f1, sent_r, sent_p, test_time = evaluate(
+    #emo_metrics_output, act_metrics_output, test_time = evaluate(
+    #    model, labeled_data_house.get_iterator("test", args.batch_size, False), use_mastodon_metric, confusion_matrix_name)
+    
+    # Testing dataset - Single (ERC)
+    emo_metrics_output, test_time = evaluate(
         model, labeled_data_house.get_iterator("test", args.batch_size, False), use_mastodon_metric, confusion_matrix_name)
+    
+    # Testing dataset - Single (DARC)
+    #act_metrics_output, test_time = evaluate(
+    #    model, labeled_data_house.get_iterator("test", args.batch_size, False), use_mastodon_metric, confusion_matrix_name)
     
     #print("Development Set")
     #print("=" * 15)
@@ -214,7 +224,16 @@ for epoch in range(0, args.num_epoch + 1):
 
     print("\nTest Set")
     print("=" * 15)
-    print(f"\nEmotion Recognition:\n\nF1: {test_sent_f1:.4f}\nRecall: {sent_r:.4f}\nPrecision: {sent_p:.4f}\n\n")
+    print("\nEmotion Recognition:\n\n")
+    pprint(emo_metrics_output)
+    print("=" * 20)
+    print("\n")
+
+    #print("=" * 15)
+    #print("\nDialog Act Recognition:\n\n")
+    #pprint(act_metrics_output)
+    #print("=" * 20)
+    #print("\n")
     #print(f"Dialog Act Recognition:\n\nF1: {test_act_f1:.4f}\nRecall: {act_r:.4f}\nPrecision: {act_p:.4f}\n\n")
 
     #print("On dev, sentiment f1: {:.4f}, act f1: {:.4f}".format(dev_sent_f1, dev_act_f1))
@@ -228,5 +247,5 @@ print(f"\n\nTotal training time: {total_training_time:.4f} s.")
 #print("", end="\n")
 
 # Save the storage parameters
-with open(f'{loss_storage_name}.pickle', 'wb') as handle:
-        pickle.dump(loss_storage, handle, protocol=pickle.HIGHEST_PROTOCOL)
+#with open(f'{loss_storage_name}.pickle', 'wb') as handle:
+#        pickle.dump(loss_storage, handle, protocol=pickle.HIGHEST_PROTOCOL)

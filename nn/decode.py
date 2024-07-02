@@ -72,8 +72,8 @@ class RelationDecoder(nn.Module):
     def forward(self, sent_h, act_h):
         
         linear_s = self._sent_linear(sent_h)
-        #linear_a = self._act_linear(act_h)
-        return linear_s #linear_a
+        linear_a = self._act_linear(act_h)
+        return linear_s, linear_a
 
 
 class UniLSTMLayer(nn.Module):
@@ -128,4 +128,4 @@ class LinearDecoder(nn.Module):
         self._act_linear = nn.Linear(hidden_dim, num_act)
 
     def forward(self, input_h, len_list, adj_re):
-        return self._sent_linear(input_h)#, self._act_linear(input_h)
+        return self._sent_linear(input_h), self._act_linear(input_h)

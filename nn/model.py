@@ -256,6 +256,7 @@ class TaggingAgent(nn.Module):
 
         pad_p_list, mask = [], []
 
+
         for dial_i in range(0, len(piece_list)):
             pad_p_list.append([])
             mask.append([])
@@ -264,7 +265,7 @@ class TaggingAgent(nn.Module):
                 pad_t = turn + [pad_sign] * (max_p_len - len(turn))
                 pad_p_list[-1].append(self._piece_vocab.index(pad_t))
                 mask[-1].append([1] * len(turn) + [0] * (max_p_len - len(turn)))
-
+        
         # Convert to Tensors and mount onto Cuda
         var_w_dial = torch.LongTensor(pad_w_list)
         var_p_dial = torch.LongTensor(pad_p_list)
@@ -302,7 +303,13 @@ class TaggingAgent(nn.Module):
 
         # Late fusion
         sent_h, act_h = self.decode_with_gat(full_encoded, len_list, var_adj_R)
-        pred_sent = self.forward(sent_h, act_h)
+        
+        # Multitask
+        pred_sent, pred_act = self.forward(sent_h, act_h)
+
+        # Single-task
+        pred_sent, _ = self.forward(sent_h, act_h)
+        #_, pred_act = self.forward(sent_h, act_h)
 
         # Get the labels
         trim_list = [len(l) for l in len_list]
@@ -337,7 +344,10 @@ class TaggingAgent(nn.Module):
         #    self._act_vocab.get, nest_act
         #)
         
-        return string_sent#, string_act
+        return string_sent
+        #return string_act
+
+        #return string_sent, string_act
 
     def measure(self, utt_list, sent_list, act_list, adj_list, adj_full_list, adj_id_list):
         
@@ -382,7 +392,7 @@ class TaggingAgent(nn.Module):
         sent_h, act_h = self.decode_with_gat(full_encoded, len_list, var_adj_R)
 
         #pred_sent, pred_act = self.forward(sent_h, act_h)
-        pred_sent = self.forward(sent_h, act_h)
+        pred_sent, _ = self.forward(sent_h, act_h)
        
         trim_list = [len(l) for l in len_list]
 
@@ -406,4 +416,7 @@ class TaggingAgent(nn.Module):
         #    F.log_softmax(flat_pred_a, dim=-1), var_act
         #)
 
-        return sent_loss# + act_loss
+        return sent_loss
+        #return act_loss
+
+        #return sent_loss + act_loss

@@ -146,7 +146,11 @@ def evaluate(model, data_iter, mastodon_metric, cm_name):
         gold_act.extend(act)
 
         with torch.no_grad():
+
             p_sent = model.predict(utt, adj, adj_full, adj_I)
+            #_, p_act = model.predict(utt, adj, adj_full, adj_I)
+            
+            #p_sent, p_act = model.predict(utt, adj, adj_full, adj_I)
         
         pred_sent.extend(p_sent)
         #pred_act.extend(p_act)
@@ -173,17 +177,23 @@ def evaluate(model, data_iter, mastodon_metric, cm_name):
     #pred_act = expand_list(pred_act)
     #gold_act = expand_list(gold_act)
 
-    sent_f1, sent_r, sent_p = reference.validate_emot(pred_sent, gold_sent)
-    #act_f1, act_r, act_p = reference.validate_act(pred_act, gold_act)
+    emo_metrics_output = reference.validate_emot(pred_sent, gold_sent)
+    #act_metrics_output = reference.validate_act(pred_act, gold_act)
 
-    if cm_name is not None:
+    #if cm_name is not None:
 
         # Get the confusion matrix
         #act_matrix = confusion_matrix(gold_act, pred_act)
-        sent_matrix = confusion_matrix(gold_sent, pred_sent)
+    #    sent_matrix = confusion_matrix(gold_sent, pred_sent)
 
         # Save the confusion matrix
-        _save_confusion_matrix(sent_matrix, cm_name)
+    #    _save_confusion_matrix(sent_matrix, cm_name)
 
     time_con = time.time() - time_start
-    return sent_f1, sent_r, sent_p, time_con
+    
+    # Single task
+    return emo_metrics_output, time_con
+    #return _, act_metrics_output, time_con
+
+    # Multi-task
+    #return emo_metrics_output, act_metrics_output, time_con

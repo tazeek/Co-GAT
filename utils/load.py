@@ -132,7 +132,7 @@ class DataHub(object):
             for interact in session:
                 
                 # Labels
-                act.append(interact["act"])
+                act.append(interact.get("act", 0))
                 emotion.append(interact["sentiment"])
 
                 # Utterance words

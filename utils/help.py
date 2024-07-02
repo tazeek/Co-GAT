@@ -155,7 +155,12 @@ class ReferMetric(object):
             f1 = 0.
         else:
             f1 = 2. * prec * reca / (prec + reca)
-        return f1, prec, reca
+
+        return {
+            'precision': prec,
+            'recall': reca,
+            'f1': f1
+        }
 
     def validate_emot(self, haty, goldy):
         nok, nrec, ntot = self._base_statistic(haty, goldy, self._num_emot)
@@ -189,7 +194,11 @@ class ReferMetric(object):
             avg_p += pr
         f1 = (f1pos + f1neg) / 2.
 
-        return f1, avg_r / 2.0, avg_p / 2.0
+        return {
+            'f1': f1,
+            'recall': avg_r / 2.0,
+            'precision': avg_p / 2.0
+        }
 
 
 class NormalMetric(object):
@@ -232,25 +241,28 @@ class NormalMetric(object):
         flat_pred_list = expand_list(pred_list)
         flat_gold_list = expand_list(gold_list)
 
+        # For label-level evaluation
         dd_labels = ['neutral', 'anger', 'disgust', 'fear', 'happiness', 'sadness', 'surprise']
         meld_labels = ['neutral', 'surprise', 'fear', 'sadness', 'joy', 'disgust', 'anger']
+
+        labels_in_use = meld_labels
 
         # Convert to 2D:
         # - To calculate MCC for each label
         # - To remove neutral label for DD
         # - Calculate label for each
 
-        f1_per_class = f1_score(flat_gold_list, flat_pred_list, average=None, labels=range(len(meld_labels)))
-        f1_per_class_dict = {label: score for label, score in zip(meld_labels, f1_per_class)}
+        f1_per_class = f1_score(flat_gold_list, flat_pred_list, average=None, labels=range(len(labels_in_use)))
+        f1_per_class_dict = {label: score for label, score in zip(labels_in_use, f1_per_class)}
 
-        precision_per_class = precision_score(flat_gold_list, flat_pred_list, average=None, labels=range(len(meld_labels)))
-        precision_per_class_dict = {label: score for label, score in zip(meld_labels, precision_per_class)}
+        precision_per_class = precision_score(flat_gold_list, flat_pred_list, average=None, labels=range(len(labels_in_use)))
+        precision_per_class_dict = {label: score for label, score in zip(labels_in_use, precision_per_class)}
 
-        recall_per_class = recall_score(flat_gold_list, flat_pred_list, average=None, labels=range(len(meld_labels)))
-        recall_per_class_dict = {label: score for label, score in zip(meld_labels, recall_per_class)}
+        recall_per_class = recall_score(flat_gold_list, flat_pred_list, average=None, labels=range(len(labels_in_use)))
+        recall_per_class_dict = {label: score for label, score in zip(labels_in_use, recall_per_class)}
 
         label_mcc = {}
-        for i, name in enumerate(meld_labels):
+        for i, name in enumerate(labels_in_use):
             filetered_gold, filtered_pred = self.filter_values(i, flat_gold_list, flat_pred_list)
             label_mcc[name] = matthews_corrcoef(filetered_gold, filtered_pred)
 
