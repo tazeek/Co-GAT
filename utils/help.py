@@ -244,8 +244,9 @@ class NormalMetric(object):
         # For label-level evaluation
         dd_labels = ['neutral', 'anger', 'disgust', 'fear', 'happiness', 'sadness', 'surprise']
         meld_labels = ['neutral', 'surprise', 'fear', 'sadness', 'joy', 'disgust', 'anger']
+        emory_labels = ['neutral','joyful','peaceful','powerful','scared','mad','sad']
 
-        labels_in_use = meld_labels
+        labels_in_use = emory_labels
 
         # Convert to 2D:
         # - To calculate MCC for each label

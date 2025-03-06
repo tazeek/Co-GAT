@@ -55,7 +55,7 @@ class DataHub(object):
         house = DataHub()
 
         house._data_collection["train"] = house._read_data(
-            os.path.join(dir_path, "train.json"),
+            os.path.join(dir_path, "cc_emory_train.json"),
             True
         )
 
