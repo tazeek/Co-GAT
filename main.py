@@ -63,6 +63,7 @@ def get_hyperparams_args():
     parser.add_argument("--hidden_dim", "-hd", type=int, default=256)
     parser.add_argument("--dropout_rate", "-dr", type=float, default=0.1)
     parser.add_argument("--gat_dropout_rate", "-gdr", type=float, default=0.1)
+    parser.add_argument("--model_name", "-name", type=str, default='')
 
     return parser.parse_args()
 

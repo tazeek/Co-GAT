@@ -2,6 +2,7 @@ import time
 from tqdm import tqdm
 
 import pickle
+import pandas as pd
 
 import torch
 from torch.optim import Adam
@@ -96,11 +97,14 @@ def evaluate(model, data_iter, mastodon_metric, cm_name):
 
     gold_sent, pred_sent = [], []
     gold_act, pred_act = [], []
+    utterances = []
+
     time_start = time.time()
 
     for utt, sent, act, adj, adj_full, adj_I in tqdm(data_iter, ncols=50):
         gold_sent.extend(sent)
         gold_act.extend(act)
+        utterances.extend(utt)
 
         with torch.no_grad():
             p_sent, p_act = model.predict(utt, adj, adj_full, adj_I)
@@ -141,6 +145,15 @@ def evaluate(model, data_iter, mastodon_metric, cm_name):
 
         # Save the confusion matrix
         _save_confusion_matrix(sent_matrix, act_matrix, cm_name)
+
+        # Store case study samples in CSV file
+        case_study_files = pd.DataFrame({
+            'predicted': pred_sent,
+            'actual': gold_sent,
+            'sample': utterances
+        })
+
+        case_study_files.to_csv(f'{cm_name}.csv', index=False)
 
     time_con = time.time() - time_start
     return sent_f1, sent_r, sent_p, act_f1, act_r, act_p, time_con
