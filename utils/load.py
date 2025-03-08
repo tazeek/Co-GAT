@@ -1,4 +1,5 @@
 import os
+import numpy as np
 from copy import deepcopy
 
 from torch.utils.data import Dataset
@@ -6,7 +7,7 @@ from torch.utils.data import DataLoader
 
 from utils.dict import WordAlphabet
 from utils.dict import LabelAlphabet
-from utils.help import load_json_file, load_txt
+from utils.help import load_json_file, load_txt, load_pickle_file
 from utils.help import iterable_support
 
 
@@ -54,15 +55,18 @@ class DataHub(object):
         house = DataHub()
 
         house._data_collection["train"] = house._read_data(
-            os.path.join(dir_path, "train.json"), True
+            os.path.join(dir_path, "cc_emory_train.json"),
+            True
         )
 
         house._data_collection["dev"] = house._read_data(
-            os.path.join(dir_path, "dev.json"), False
+            os.path.join(dir_path, "dev.json"), 
+            False
         )
 
         house._data_collection["test"] = house._read_data(
-            os.path.join(dir_path, "test.json"), False
+            os.path.join(dir_path, "test.json"), 
+            False
         )
 
         return house
@@ -120,21 +124,25 @@ class DataHub(object):
         utt_list, sent_list, act_list = [], [], []
         dialogue_list = load_json_file(file_path)
 
+        # Iterate by conversation
         for session in dialogue_list:
             utt, emotion, act = [], [], []
 
+            # Iterate by utterance
             for interact in session:
-
-                act.append(interact["act"])
+                
+                # Labels
+                act.append(interact.get("act", 0))
                 emotion.append(interact["sentiment"])
 
+                # Utterance words
                 word_list = interact["utterance"].split()
                 utt.append(word_list)
 
             utt_list.append(utt)
             sent_list.append(emotion)
             act_list.append(act)
-
+            
         # For adjacency matrix creation
         adjpath = file_path.split(".")[0] + "_adj.txt"
         adj_list, adj_full_list, adj_I_list = self._read_adj(adjpath)

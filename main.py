@@ -4,32 +4,38 @@ import json
 import torch
 import argparse
 import time
+import pickle
+
+#from torch.utils.tensorboard import SummaryWriter
 
 from utils import DataHub
 from nn import TaggingAgent
 from utils import fix_random_state
 from utils import training, evaluate
-from utils.process import vat_training
+from utils.process import vat_training, semi_supervised_training
 from utils.dict import PieceAlphabet
+from pprint import pprint
 
 def get_file_names(args):
 
     model_file_name = 'model_cogat'
     cm_file_name = 'cm_cogat'
+    loss_storage_name = 'loss_tracker'
 
     # Dataset is the first
     dataset = args.data_dir.split('/')[-1]
 
     model_file_name += '_' + dataset
     cm_file_name += '_' + dataset
+    loss_storage_name += '_' + dataset
 
     # Followed by VAT
     if args.vat_applied is True:
         model_file_name += '_' + 'vat_' + args.perturbation
         cm_file_name += '_' + 'vat_' + args.perturbation
-        ...
+        loss_storage_name += '_' + 'vat_' + args.perturbation
 
-    return model_file_name, cm_file_name
+    return model_file_name, cm_file_name, loss_storage_name
 
 def get_hyperparams_args():
 
@@ -100,6 +106,9 @@ def print_trainable_params(model):
 args = get_hyperparams_args()
 print(json.dumps(args.__dict__, indent=True), end="\n\n\n")
 
+#writer_logs = args.perturbation or 'basic'
+#writer = SummaryWriter(f'logs/new_approach_speaker_layer')
+
 # fix random seed
 fix_random_state(args.random_state)
 
@@ -108,7 +117,7 @@ labeled_data_house, labeled_piece_vocab = build_datasets(args.data_dir, args.pre
 unlabeled_data_house, unlabeled_piece_vocab = None, None
 
 # Get the filenames
-model_name, confusion_matrix_name = get_file_names(args)
+model_name, confusion_matrix_name, loss_storage_name = get_file_names(args)
 
 if args.vat_applied:
     unlabeled_data_house, unlabeled_piece_vocab = build_datasets(args.semi_sup_dir, args.pretrained_model)
@@ -142,42 +151,91 @@ test_act_sent, test_act_act = 0.0, 0.0
 
 start_time = time.time()
 
+loss_storage = {
+    'epoch': [],
+    'train_loss': [],
+    'vat_loss': []
+}
+
 for epoch in range(0, args.num_epoch + 1):
 
     print(f"Training Epoch: {epoch} \n\n")
-
-    # Start training
-    train_loss, train_time = training(model, labeled_data_house.get_iterator("train", args.batch_size, True),
-                                      10.0, args.bert_learning_rate, args.pretrained_model)
-    
-    # Training dataset update
-    print(f"\n[Epoch {epoch} - Training] Train loss is {train_loss:.4f}, cost {train_time:.4f} s.\n")
+    train_loss, vat_loss, train_time = 0, 0, None
 
     # Perform VAT
     if args.vat_applied:
 
-        vat_loss, vat_time = vat_training(model, labeled_data_house.get_iterator("dev", args.batch_size, True),
-                                          10.0, args.bert_learning_rate, args.pretrained_model)
-        
-        print(f"\n[Epoch {epoch} - VAT] VAT loss is {vat_loss:.4f}, cost {vat_time:.4f} s.\n")
+        #vat_loss, vat_time = vat_training(model, labeled_data_house.get_iterator("dev", args.batch_size, True),
+        #                                  10.0, args.bert_learning_rate, args.pretrained_model)
+
+        train_loss, vat_loss, train_time = semi_supervised_training(
+            model,
+            labeled_data_house.get_iterator("train", args.batch_size, True),
+            unlabeled_data_house.get_iterator("train", args.batch_size, True),
+            10.0, 
+            args.bert_learning_rate, 
+            args.pretrained_model
+
+        )
+
+        loss_storage['vat_loss'].append(vat_loss)
+        #writer.add_scalar('train/vat_loss', vat_loss, epoch)
+        print(f"\n[Epoch {epoch} - Training]\nTrain loss is {train_loss:.4f}\nVAT loss is {vat_loss:.4f}\nTime is {train_time:.4f} s.\n\n")
+    else:
+        # Start training
+        train_loss, train_time = training(model, labeled_data_house.get_iterator("train", args.batch_size, True),
+                                        10.0, args.bert_learning_rate, args.pretrained_model)
+    
+    #writer.add_scalar('train/loss', train_loss, epoch)
+    
+        # Training dataset update
+        print(f"\n[Epoch {epoch} - Training]\nTrain loss is {train_loss:.4f}\n\nTime is {train_time:.4f} s.\n\n")
 
     # Validation dataset (Skip it)
     #dev_sent_f1, dev_sent_r, dev_sent_p, dev_act_f1, dev_act_r, dev_act_p, dev_time = evaluate(
     #    model, labeled_data_house.get_iterator("dev", args.batch_size, False), use_mastodon_metric, None)
     
+    loss_storage['epoch'].append(epoch + 1)
+    loss_storage['train_loss'].append(train_loss)
+
     # Testing dataset
-    test_sent_f1, sent_r, sent_p, test_act_f1, act_r, act_p, test_time = evaluate(
+    #emo_metrics_output, act_metrics_output, test_time = evaluate(
+    #    model, labeled_data_house.get_iterator("test", args.batch_size, False), use_mastodon_metric, confusion_matrix_name)
+    
+    # Testing dataset - Single (ERC)
+    emo_metrics_output, test_time = evaluate(
         model, labeled_data_house.get_iterator("test", args.batch_size, False), use_mastodon_metric, confusion_matrix_name)
+    
+    # Testing dataset - Single (DARC)
+    #act_metrics_output, test_time = evaluate(
+    #    model, labeled_data_house.get_iterator("test", args.batch_size, False), use_mastodon_metric, confusion_matrix_name)
     
     #print("Development Set")
     #print("=" * 15)
     #print(f"Sentiment:\nF1: {dev_sent_f1}\nRecall: {dev_sent_r}\nPrecision: {dev_sent_p}\n\n")
     #print(f"Dialog Act:\nF1: {dev_act_f1}\nRecall: {dev_act_r}\nPrecision: {dev_act_p}\n\n")
 
-    print("Test Set")
+    #writer.add_scalar('test/emo_f1', test_sent_f1, epoch)
+    #writer.add_scalar('test/emo_r', sent_r, epoch)
+    #writer.add_scalar('test/emo_p', sent_p, epoch)
+
+    #writer.add_scalar('test/act_f1', test_act_f1, epoch)
+    #writer.add_scalar('test/act_r', act_r, epoch)
+    #writer.add_scalar('test/act_p', act_p, epoch)
+
+    print("\nTest Set")
     print("=" * 15)
-    print(f"Emotion Recognition:\n\nF1: {test_sent_f1}\nRecall: {sent_r}\nPrecision: {sent_p}\n\n")
-    print(f"Dialog Act Recognition:\n\nF1: {test_act_f1}\nRecall: {act_r}\nPrecision: {act_p}\n\n")
+    print("\nEmotion Recognition:\n\n")
+    pprint(emo_metrics_output)
+    print("=" * 20)
+    print("\n")
+
+    #print("=" * 15)
+    #print("\nDialog Act Recognition:\n\n")
+    #pprint(act_metrics_output)
+    #print("=" * 20)
+    #print("\n")
+    #print(f"Dialog Act Recognition:\n\nF1: {test_act_f1:.4f}\nRecall: {act_r:.4f}\nPrecision: {act_p:.4f}\n\n")
 
     #print("On dev, sentiment f1: {:.4f}, act f1: {:.4f}".format(dev_sent_f1, dev_act_f1))
     #print("On test, sentiment f1: {:.4f}, act f1 {:.4f}".format(test_sent_f1, test_act_f1))
@@ -186,5 +244,9 @@ for epoch in range(0, args.num_epoch + 1):
 total_training_time = time.time() - start_time
 print(f"\n\nTotal training time: {total_training_time:.4f} s.")
 
-torch.save(model, os.path.join(args.save_dir, f"{model_name}.pt"))
-print("", end="\n")
+#torch.save(model, os.path.join(args.save_dir, f"{model_name}.pt"))
+#print("", end="\n")
+
+# Save the storage parameters
+#with open(f'{loss_storage_name}.pickle', 'wb') as handle:
+#        pickle.dump(loss_storage, handle, protocol=pickle.HIGHEST_PROTOCOL)

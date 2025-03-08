@@ -48,7 +48,7 @@ class RelationDecoder(nn.Module):
     def add_missing_arg(self, layer=2):
         self._relate_layer.add_missing_arg(layer)
 
-    def forward(self, input_h, len_list, adj_re):
+    def extract_with_gat(self, input_h, len_list, adj_re):
 
         sent_h = self._sent_layer_dict["0"](input_h)
         act_h = self._act_layer_dict["0"](input_h)
@@ -66,6 +66,10 @@ class RelationDecoder(nn.Module):
 
         # residual connection
         sent_h, act_h = sent_h + input_h, act_h + input_h
+
+        return sent_h, act_h
+
+    def forward(self, sent_h, act_h):
         
         linear_s = self._sent_linear(sent_h)
         linear_a = self._act_linear(act_h)

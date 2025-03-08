@@ -3,10 +3,9 @@ import random
 import codecs
 
 import numpy as np
-from sklearn.metrics import f1_score
-from sklearn.metrics import recall_score
-from sklearn.metrics import precision_score
+from sklearn.metrics import f1_score, recall_score, precision_score, matthews_corrcoef, classification_report
 
+import pickle
 import torch
 from torch import cuda
 
@@ -76,6 +75,14 @@ def nest_list(e_list, len_list):
         n_list.append(e_list[sent_start: sent_end])
         sent_start = sent_end
     return n_list
+
+def load_pickle_file(file_path):
+    dataset = []
+
+    with open(file_path, 'rb') as file:
+        dataset = pickle.load(file)
+
+    return dataset
 
 
 def load_json_file(file_path):
@@ -148,7 +155,12 @@ class ReferMetric(object):
             f1 = 0.
         else:
             f1 = 2. * prec * reca / (prec + reca)
-        return f1, prec, reca
+
+        return {
+            'precision': prec,
+            'recall': reca,
+            'f1': f1
+        }
 
     def validate_emot(self, haty, goldy):
         nok, nrec, ntot = self._base_statistic(haty, goldy, self._num_emot)
@@ -157,6 +169,7 @@ class ReferMetric(object):
         avg_r, avg_p = 0.0, 0.0
 
         for j in (self._pos_emot,):  # 1=+ and 2=-
+
             tp = nok[j]
             pr, re = 0., 0.
             if nrec[j] > 0:
@@ -167,6 +180,7 @@ class ReferMetric(object):
                 f1pos = 2. * pr * re / (pr + re)
             avg_r += re
             avg_p += pr
+
         for j in (self._neg_emot,):  # 1=+ and 2=-
             tp = nok[j]
             pr, re = 0., 0.
@@ -179,7 +193,12 @@ class ReferMetric(object):
             avg_r += re
             avg_p += pr
         f1 = (f1pos + f1neg) / 2.
-        return f1, avg_r / 2.0, avg_p / 2.0
+
+        return {
+            'f1': f1,
+            'recall': avg_r / 2.0,
+            'precision': avg_p / 2.0
+        }
 
 
 class NormalMetric(object):
@@ -198,13 +217,73 @@ class NormalMetric(object):
 
         # The score calculated with macro-f1 is generally lower.
         return f_score, r_score, p_score
+    
+    def filter_values(self, value, gold_list, pred_list):
 
-    @staticmethod
-    def validate_emot(pred_list, gold_list):
+        filetered_gold, filtered_pred = [], []
+
+        indexes = [index for index, label in enumerate(gold_list) if label == value]
+
+        for index, (y_true, y_pred) in enumerate(zip(gold_list, pred_list)):
+
+            # Skip over if it is present
+            if index in indexes:
+                continue
+            
+            # Otherwise: add it in
+            filetered_gold.append(y_true)
+            filtered_pred.append(y_pred)
+        
+        return filetered_gold, filtered_pred
+
+    def validate_emot(self, pred_list, gold_list):
+
         flat_pred_list = expand_list(pred_list)
         flat_gold_list = expand_list(gold_list)
 
-        f_score = f1_score(flat_gold_list, flat_pred_list, average="macro")
-        r_score = recall_score(flat_gold_list, flat_pred_list, average="macro")
-        p_score = precision_score(flat_gold_list, flat_pred_list, average="macro")
-        return f_score, r_score, p_score
+        # For label-level evaluation
+        dd_labels = ['neutral', 'anger', 'disgust', 'fear', 'happiness', 'sadness', 'surprise']
+        meld_labels = ['neutral', 'surprise', 'fear', 'sadness', 'joy', 'disgust', 'anger']
+        emory_labels = ['neutral','joyful','peaceful','powerful','scared','mad','sad']
+
+        labels_in_use = emory_labels
+
+        # Convert to 2D:
+        # - To calculate MCC for each label
+        # - To remove neutral label for DD
+        # - Calculate label for each
+
+        f1_per_class = f1_score(flat_gold_list, flat_pred_list, average=None, labels=range(len(labels_in_use)))
+        f1_per_class_dict = {label: score for label, score in zip(labels_in_use, f1_per_class)}
+
+        precision_per_class = precision_score(flat_gold_list, flat_pred_list, average=None, labels=range(len(labels_in_use)))
+        precision_per_class_dict = {label: score for label, score in zip(labels_in_use, precision_per_class)}
+
+        recall_per_class = recall_score(flat_gold_list, flat_pred_list, average=None, labels=range(len(labels_in_use)))
+        recall_per_class_dict = {label: score for label, score in zip(labels_in_use, recall_per_class)}
+
+        label_mcc = {}
+        for i, name in enumerate(labels_in_use):
+            filetered_gold, filtered_pred = self.filter_values(i, flat_gold_list, flat_pred_list)
+            label_mcc[name] = matthews_corrcoef(filetered_gold, filtered_pred)
+
+        # Micro f1: No neutral (0) needed (DailyDialog)
+        filetered_gold, filtered_pred = self.filter_values(0, flat_gold_list, flat_pred_list)
+
+        # Expand the metrics (WHOLE)
+        evaluation_metrics = {
+            'F1 Macro (DailyDialog)': f1_score(flat_gold_list, flat_pred_list, average="macro"),
+            'Recall (DailyDialog)': recall_score(flat_gold_list, flat_pred_list, average="macro"),
+            'Precision (DailyDialog)': precision_score(flat_gold_list, flat_pred_list, average="macro"),
+            'F1 Micro (Without Neutral - DailyDialog)': f1_score(filetered_gold, filtered_pred, average="micro"), # For DailyDialog
+            'F1 Micro (MELD)': f1_score(flat_gold_list, flat_pred_list, average="micro"), # For MELD
+            'F1 Weighted (MELD)': f1_score(flat_gold_list, flat_pred_list, average="weighted"),
+            'MCC (Overall - All)': matthews_corrcoef(flat_gold_list, flat_pred_list),
+            'MCC (Individual Labels - All)': label_mcc,
+            'Precision (Individual Labels - All)': precision_per_class_dict,
+            'Recall (Individual Labels - All)': recall_per_class_dict,
+            'F1 (Individual Labels - All)': f1_per_class_dict
+        }
+        
+
+        return evaluation_metrics

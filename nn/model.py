@@ -1,4 +1,5 @@
 import json
+import numpy as np
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -48,6 +49,7 @@ class TaggingAgent(nn.Module):
             nn.Embedding(len(word_vocab), embedding_dim),
             hidden_dim, dropout_rate, pretrained_model
         )
+
         if use_linear_decoder:
             self._decoder = LinearDecoder(len(sent_vocab), len(act_vocab), hidden_dim)
         else:
@@ -71,6 +73,9 @@ class TaggingAgent(nn.Module):
 
     def preprocess_data(self, utt_list, adj_list, adj_full_list, adj_id_list):
         return self._wrap_padding(utt_list, adj_list, adj_full_list, adj_id_list, True)
+    
+    def decode_with_gat(self, input_h, len_list, adj_re):
+        return self._decoder.extract_with_gat(input_h, len_list, adj_re)
 
     def extract_utterance_features(self, input_w, mask=None):
         return self._encoder.extract_utterances(input_w, mask)
@@ -78,8 +83,8 @@ class TaggingAgent(nn.Module):
     def extract_from_speaker_layer(self, bi_ret, adj):
         return self._encoder(bi_ret, adj)
 
-    def forward(self, full_encoded, len_list, adj_re):
-        return self._decoder(full_encoded, len_list, adj_re)
+    def forward(self, sent_h, act_h):
+        return self._decoder(sent_h, act_h)
 
     @property
     def sent_vocab(self):
@@ -194,11 +199,16 @@ class TaggingAgent(nn.Module):
         # For adjusting the dialog length
         # and for token conversion (Not Pretrained model)
         pad_w_list, pad_sign = [], self._word_vocab.PAD_SIGN
+        #empty_personality_list = [0] * 250
 
         for dial_i in range(0, len(dial_list)):
 
             pad_w_list.append([])
+            #pad_per_list.append([])
 
+            #conversation_personality = personality_list[dial_i]
+
+            #for personality, turn in zip(conversation_personality, dial_list[dial_i]):
             for turn in dial_list[dial_i]:
 
                 if use_noise:
@@ -206,13 +216,22 @@ class TaggingAgent(nn.Module):
                 else:
                     noise_turn = turn
 
+                # Tokenization form
                 pad_utt = noise_turn + [pad_sign] * (max_turn_len - len(turn))
+
+                # Conversion from tokens to IDs
                 pad_w_list[-1].append(iterable_support(self._word_vocab.index, pad_utt))
+                #pad_per_list[-1].append(list(personality))
 
             if len(dial_list[dial_i]) < max_dial_len:
 
+                # Create pads
                 pad_dial = [[pad_sign] * max_turn_len] * (max_dial_len - len(dial_list[dial_i]))
+                #personality_dial = [empty_personality_list] * (max_dial_len - len(dial_list[dial_i]))
+                
+                # Add to the list
                 pad_w_list[-1].extend(iterable_support(self._word_vocab.index, pad_dial))
+                #pad_per_list[-1].extend(personality_dial)
 
         # For tokenization (Pre-trained models)
         cls_sign = self._piece_vocab.CLS_SIGN
@@ -237,6 +256,7 @@ class TaggingAgent(nn.Module):
 
         pad_p_list, mask = [], []
 
+
         for dial_i in range(0, len(piece_list)):
             pad_p_list.append([])
             mask.append([])
@@ -245,7 +265,7 @@ class TaggingAgent(nn.Module):
                 pad_t = turn + [pad_sign] * (max_p_len - len(turn))
                 pad_p_list[-1].append(self._piece_vocab.index(pad_t))
                 mask[-1].append([1] * len(turn) + [0] * (max_p_len - len(turn)))
-
+        
         # Convert to Tensors and mount onto Cuda
         var_w_dial = torch.LongTensor(pad_w_list)
         var_p_dial = torch.LongTensor(pad_p_list)
@@ -274,15 +294,22 @@ class TaggingAgent(nn.Module):
         # Perform predictions
         bi_ret = None 
         if self._pretrained_model != "none":
-
             bi_ret = self.extract_utterance_features(var_p, mask)
-        
         else:
-            
             bi_ret = self.extract_utterance_features(var_utt, None)
 
+        # Middle fusion
         full_encoded = self.extract_from_speaker_layer(bi_ret, var_adj)
-        pred_sent, pred_act = self.forward(full_encoded, len_list, var_adj_R)
+
+        # Late fusion
+        sent_h, act_h = self.decode_with_gat(full_encoded, len_list, var_adj_R)
+        
+        # Multitask
+        pred_sent, pred_act = self.forward(sent_h, act_h)
+
+        # Single-task
+        pred_sent, _ = self.forward(sent_h, act_h)
+        #_, pred_act = self.forward(sent_h, act_h)
 
         # Get the labels
         trim_list = [len(l) for l in len_list]
@@ -292,36 +319,40 @@ class TaggingAgent(nn.Module):
              i in range(0, len(trim_list))], dim=0
         )
         
-        flat_act = torch.cat(
-            [pred_act[i, :trim_list[i], :] for
-             i in range(0, len(trim_list))], dim=0
-        )
+        #flat_act = torch.cat(
+        #    [pred_act[i, :trim_list[i], :] for
+        #     i in range(0, len(trim_list))], dim=0
+        #)
 
         # Narrow down to top-k (In this case, the top label)
         _, top_sent = flat_sent.topk(1, dim=-1)
-        _, top_act = flat_act.topk(1, dim=-1)
+        #_, top_act = flat_act.topk(1, dim=-1)
 
         # Mount to CPU and convert to list
         # Return once done
         sent_list = top_sent.cpu().numpy().flatten().tolist()
-        act_list = top_act.cpu().numpy().flatten().tolist()
+        #act_list = top_act.cpu().numpy().flatten().tolist()
 
         nest_sent = nest_list(sent_list, trim_list)
-        nest_act = nest_list(act_list, trim_list)
+        #nest_act = nest_list(act_list, trim_list)
 
         string_sent = iterable_support(
             self._sent_vocab.get, nest_sent
         )
         
-        string_act = iterable_support(
-            self._act_vocab.get, nest_act
-        )
+        #string_act = iterable_support(
+        #    self._act_vocab.get, nest_act
+        #)
         
-        return string_sent, string_act
+        return string_sent
+        #return string_act
+
+        #return string_sent, string_act
 
     def measure(self, utt_list, sent_list, act_list, adj_list, adj_full_list, adj_id_list):
         
         # Data Preprocessing here
+
         var_utt, var_p, mask, len_list, _, var_adj, var_adj_full, var_adj_R = \
             self._wrap_padding(utt_list, adj_list, adj_full_list, adj_id_list, True)
 
@@ -348,16 +379,20 @@ class TaggingAgent(nn.Module):
 
         # Training starts here
         bi_ret = None 
-        if self._pretrained_model != "none":
 
+        if self._pretrained_model != "none":
             bi_ret = self.extract_utterance_features(var_p, mask)
-        
         else:
-            
             bi_ret = self.extract_utterance_features(var_utt, None)
 
+        # Middle fusion - Before the speaker layer
         full_encoded = self.extract_from_speaker_layer(bi_ret, var_adj)
-        pred_sent, pred_act = self.forward(full_encoded, len_list, var_adj_R)
+
+        # Late fusion - Before the GAT layer   
+        sent_h, act_h = self.decode_with_gat(full_encoded, len_list, var_adj_R)
+
+        #pred_sent, pred_act = self.forward(sent_h, act_h)
+        pred_sent, _ = self.forward(sent_h, act_h)
        
         trim_list = [len(l) for l in len_list]
 
@@ -367,17 +402,21 @@ class TaggingAgent(nn.Module):
              i in range(0, len(trim_list))], dim=0
         )
 
-        flat_pred_a = torch.cat(
-            [pred_act[i, :trim_list[i], :] for
-             i in range(0, len(trim_list))], dim=0
-        )
+        #flat_pred_a = torch.cat(
+        #    [pred_act[i, :trim_list[i], :] for
+        #     i in range(0, len(trim_list))], dim=0
+        #)
 
         # Calculate the loss after softmax (IMPORTANT)
         sent_loss = self._criterion(
             F.log_softmax(flat_pred_s, dim=-1), var_sent
         )
 
-        act_loss = self._criterion(
-            F.log_softmax(flat_pred_a, dim=-1), var_act
-        )
-        return sent_loss + act_loss
+        #act_loss = self._criterion(
+        #    F.log_softmax(flat_pred_a, dim=-1), var_act
+        #)
+
+        return sent_loss
+        #return act_loss
+
+        #return sent_loss + act_loss

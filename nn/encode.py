@@ -201,7 +201,8 @@ class UtterancePretrainedModel(nn.Module):
             else:
                 output = self._encoder(input_p[idx], attention_mask=mask[idx])
 
-            cls_tensor = output.pooler_output
+            #cls_tensor = output.pooler_output
+            cls_tensor = output["last_hidden_state"][:, -1, :]
 
             linear_out = self._linear(cls_tensor.unsqueeze(0))
             cls_list.append(linear_out)
