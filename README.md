@@ -15,16 +15,18 @@ The script **main.py** acts as a main function to the project, you can run the e
 
   ``` shell script
     # Mastodon
-    CUDA_VISIBLE_DEVICES=$1 python -u main.py -ed 800 -sd save/mastodon -dd dataset/mastodon
+    CUDA_VISIBLE_DEVICES=$1 python -u main.py -ne 100 -ed 800 -sd save/mastodon -dd dataset/mastodon
+    python -u main.py -ne 100 -ed 800 -sd save/mastodon -dd dataset/mastodon -ssd dataset/meld -vat True -pm bert
 
     # Mastodon (With VAT)
     CUDA_VISIBLE_DEVICES=$1 python -u main.py -ed 800 -sd save/mastodon -dd dataset/mastodon -ssd dataset/dailydialogue -vat True
   
     # Dailydialogue
     CUDA_VISIBLE_DEVICES=$1 python -u main.py -bs 32 -ne 100 -dr 0.07 -gl 3 -sd save/dailydialogue -dd dataset/dailydialogue
-
+    python -u main.py -bs 32 -ne 100 -dr 0.07 -gl 3 -sd save/dailydialogue -dd dataset/meld
+  
     # Dailydialogue (with VAT)
-    CUDA_VISIBLE_DEVICES=$1 python -u main.py -bs 32 -ne 100 -dr 0.07 -gl 3 -sd save/dailydialogue -dd dataset/dailydialogue -ssd dataset/mastodon -vat True
+    CUDA_VISIBLE_DEVICES=$1 python -u main.py -bs 32 -ne 100 -dr 0.07 -gl 3 -sd save/dailydialogue -dd dataset/dailydialogue -ssd dataset/meld -vat True
   ```
 
 Due to some stochastic factors(e.g., GPU and environment), it maybe need to slightly tune the hyper-parameters using grid search to reproduce the results reported in our paper.
@@ -73,3 +75,13 @@ For loading the best model and get the results reported in our paper. Please use
     # Dailydialogue
     CUDA_VISIBLE_DEVICES=$1 python -u test_model.py -bs 32 -sd save/dailydialogue -dd dataset/dailydialogue
    ```
+
+### Running (Tazeek)
+
+Without VAT
+```
+```
+
+With VAT
+```
+```
