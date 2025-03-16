@@ -80,8 +80,10 @@ For loading the best model and get the results reported in our paper. Please use
 
 Without VAT
 ```
+python -u main.py -ne 100 -ed 800 -sd save/mastodon -dd dataset/meld
 ```
 
 With VAT
 ```
+python -u main.py -bs 32 -ne 100 -dr 0.07 -gl 3 -sd save/dailydialogue -dd dataset/dailydialogue -ssd dataset/meld -vat True
 ```
